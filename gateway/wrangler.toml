@@ -2,6 +2,7 @@ name = "graphicwo-gateway"
 main = "src/index.js"
 compatibility_date = "2025-06-01"
 workers_dev = true
+account_id = "ad2bc7da0efb5184da70e7d4a48e37a5"  # GraphicWO Cloudflare account (not a secret)
 
 [vars]
 DATASET_REPO = "GraphicWO-Studio/graphicwo-dataset"

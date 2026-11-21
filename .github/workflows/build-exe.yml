@@ -1,0 +1,45 @@
+name: Build Organizer EXE
+
+on:
+  push:
+    branches: [main]
+    paths: ["organizer/**", ".github/workflows/build-exe.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build tools
+        run: python -m pip install --upgrade pyinstaller pillow
+
+      - name: Build GraphicWO_Organizer.exe
+        working-directory: organizer
+        run: python -m PyInstaller --noconfirm --clean --onefile --windowed --icon=icon.ico --add-data "fonts;fonts" --name GraphicWO_Organizer GraphicWO_Organizer.pyw
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GraphicWO_Organizer
+          path: organizer/dist/GraphicWO_Organizer.exe
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: organizer-v${{ github.run_number }}
+          name: "منظّم الملفات v${{ github.run_number }}"
+          make_latest: true
+          files: organizer/dist/GraphicWO_Organizer.exe
+          body: |
+            ## منظّم الملفات — GraphicWO
+            نزّل **GraphicWO_Organizer.exe** وشغّله مباشرة، ما بيحتاج تثبيت ولا بايثون.
+
+            إذا طلعتلك شاشة «Windows protected your PC»: اكبس **More info** وبعدين **Run anyway**.

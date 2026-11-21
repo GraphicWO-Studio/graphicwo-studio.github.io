@@ -83,17 +83,22 @@ async function imageIdea(env, form) {
   const bytes = new Uint8Array(await img.arrayBuffer());
   if (!sniff(bytes)) throw Object.assign(new Error("bad_type"), {status: 415});
   const lang = {ar: "Levantine Arabic", fr: "French"}[String(form.get("lang"))] || "English";
-  const cap = await env.AI.run("@cf/unum/uform-gen2-qwen-500m", {image: [...bytes], prompt: "Describe this image in detail: subject, style, colors, background.", max_tokens: 160});
-  const desc = String(cap.description || cap.response || "").slice(0, 900);
   const seedWords = ["cinematic", "fantasy", "cyberpunk", "anime", "vintage poster", "3D Pixar", "watercolor", "neon night", "luxury product ad", "epic battle", "cozy", "underwater", "space", "Minecraft style", "comic book"];
   const vibe = seedWords[Math.floor(Math.random() * seedWords.length)];
-  const r = await env.AI.run("@cf/meta/llama-3.1-8b-instruct-fast", {
-    messages: [
-      {role: "system", content: "You write short, creative image-editing instructions for an AI image editor. Reply with ONE instruction only, max 30 words, no quotes, no preamble."},
-      {role: "user", content: `The user's reference image shows: ${desc}\nSuggest one surprising, fun way to transform or edit THIS image (keep the main subject), with a ${vibe} twist. Write it in ${lang}.`},
-    ],
-    max_tokens: 90, temperature: 1.0,
-  });
+  const mime = sniff(bytes) === "png" ? "image/png" : sniff(bytes) === "webp" ? "image/webp" : "image/jpeg";
+  const messages = [
+    {role: "system", content: "You write short, creative image-editing instructions for an AI image editor. Reply with ONE instruction only, max 30 words, no quotes, no preamble."},
+    {role: "user", content: [
+      {type: "text", text: `Look at this reference image. Suggest one surprising, fun way to transform or edit THIS image while keeping its main subject, with a ${vibe} twist. Write the instruction in ${lang}.`},
+      {type: "image_url", image_url: {url: `data:${mime};base64,${toB64(bytes)}`}},
+    ]},
+  ];
+  let r, lastErr;
+  for (const m of ["@cf/meta/llama-4-scout-17b-16e-instruct", "@cf/google/gemma-3-12b-it", "@cf/mistralai/mistral-small-3.1-24b-instruct"]) {
+    try { r = await env.AI.run(m, {messages, max_tokens: 100, temperature: 1.0}); if (r && (r.response || r.choices)) break; } catch (e) { lastErr = e; r = null; }
+  }
+  if (!r) throw lastErr || new Error("no_model");
+  if (!r.response && r.choices) r.response = r.choices[0]?.message?.content;
   return String(r.response || "").trim().replace(/^["'«]+|["'»]+$/g, "");
 }
 

@@ -769,7 +769,7 @@ function imgCard(rec, big) {
   return d;
 }
 // بوّاب GraphicWO: بيستقبل صور 👍 لتعليم الموديل المشترك (بدون أي معلومات شخصية)
-const GATEWAY_URL = "";
+const GATEWAY_URL = "https://graphicwo-gateway.graphicwo.workers.dev";
 async function shareLike(rec) {
   if (!GATEWAY_URL || !S.my.share || !rec.blob || rec.shared) return;
   try {

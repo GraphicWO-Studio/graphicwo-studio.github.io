@@ -29,9 +29,10 @@ Turn words into images, for free, in your browser or on Android.
 
 | | |
 |---|---|
-| **Engines** | **Pollinations**: no account needed · **Puter**: free account with Nano Banana 2 / Pro, GPT Image and Grok |
+| **Engines** | **Pollinations**: no account needed · **Puter**: free account with 20 top models: Nano Banana, GPT Image 2.6, FLUX.2, Seedream 5, Kling 3, Grok, Lucid Origin |
 | **Creative control** | 13 styles · 6 sizes (Reels, YouTube, posts) · up to 4 images at once · seed & negative prompts |
-| **Editing** | Upload or paste a reference photo and describe the change |
+| **🧠 My Style** | Rate images 👍/👎. Your favorites, colors and notes steer every new image, and it improves as you go. Export your favorites as a LoRA training set |
+| **Editing** | Upload or paste up to 4 reference photos and describe the change |
 | **Gallery** | Every image is saved on your device only, with search, reuse and download |
 | **Everywhere** | Web, Android app, or “Add to Home screen”. English, Arabic and French. 7 themes including black & white |
 
@@ -65,7 +66,8 @@ A clean, fast way to tidy any folder.
 بتكتب وصف الصورة، بأي لغة، وبتطلعلك الصورة ببلاش، من المتصفح أو من تطبيق الأندرويد.
 - **محرّكين مجانيين:** Pollinations بدون حساب، وPuter بحساب مجاني وفيه Nano Banana وGPT Image وGrok.
 - **13 ستايل و6 مقاسات:** ريلز، يوتيوب، بوستات. ولحد 4 صور بالمرة.
-- **تعديل على صورتك:** ارفعها أو الصقها، واكتب شو بدك يتغيّر.
+- **🧠 ستايلي:** بتعطي 👍 أو 👎 للصور، والصور الجاية بتمشي على الشكل والألوان اللي بتحبها، وبتتحسّن مع الوقت. وفيك تصدّر صورك المفضلة كملف تدريب.
+- **تعديل على صورك:** لحد 4 صور، بترفعها أو بتلصقها، وبتكتب شو بدك يتغيّر.
 - **معرض:** بيحفظ كل صورك على جهازك بس.
 - **3 لغات:** عربي وإنجليزي وفرنسي، و7 ثيمات منها الأبيض والأسود.
 

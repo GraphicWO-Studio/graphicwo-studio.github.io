@@ -24,11 +24,16 @@ jobs:
         with:
           gradle-version: "8.9"
 
-      - name: Restore signing key
+      - name: Unlock signing key
         env:
-          KS_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: |
-          if [ -n "$KS_B64" ]; then echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/graphicwo.jks"; echo "KS_PATH=$RUNNER_TEMP/graphicwo.jks" >> "$GITHUB_ENV"; else echo "::warning::No signing key secret — building with a temporary debug key"; fi
+          if [ -f mobile/signing/keystore.enc ] && [ -n "$KS_PASS" ]; then
+            openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in mobile/signing/keystore.enc -out "$RUNNER_TEMP/graphicwo.jks" -pass env:KS_PASS
+            echo "KS_PATH=$RUNNER_TEMP/graphicwo.jks" >> "$GITHUB_ENV"
+          else
+            echo "::warning::No signing key yet — building with a temporary key. Run 'Setup Android signing key' once."
+          fi
 
       - name: Build APK (Trusted Web Activity)
         working-directory: mobile
@@ -38,6 +43,7 @@ jobs:
         run: |
           gradle --no-daemon assembleRelease
           cp app/build/outputs/apk/release/app-release.apk ../GraphicWO_Studio.apk
+          rm -f "$RUNNER_TEMP/graphicwo.jks"
 
       - uses: actions/upload-artifact@v4
         with:

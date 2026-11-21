@@ -1,0 +1,51 @@
+name: Setup Android signing key (one time)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create and lock the signing key
+        env:
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          set -e
+          if [ -z "$KS_PASS" ]; then echo "::error::Add the ANDROID_KEYSTORE_PASSWORD secret first (Settings → Secrets and variables → Actions)."; exit 1; fi
+          if [ ${#KS_PASS} -lt 12 ]; then echo "::error::ANDROID_KEYSTORE_PASSWORD must be at least 12 characters."; exit 1; fi
+          if [ -f mobile/signing/keystore.enc ]; then echo "::error::A signing key already exists. Delete mobile/signing/keystore.enc only if you really want a new one (users would need to reinstall)."; exit 1; fi
+          keytool -genkeypair -keystore "$RUNNER_TEMP/k.jks" -alias graphicwo -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass "$KS_PASS" -keypass "$KS_PASS" -dname "CN=GraphicWO Studio, O=GraphicWO, C=US" >/dev/null 2>&1
+          openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -in "$RUNNER_TEMP/k.jks" -out mobile/signing/keystore.enc -pass env:KS_PASS
+          FP=$(keytool -list -v -keystore "$RUNNER_TEMP/k.jks" -storepass "$KS_PASS" | grep -m1 "SHA256:" | awk '{print $2}')
+          rm -f "$RUNNER_TEMP/k.jks"
+          echo "$FP" > mobile/signing/fingerprint.txt
+          python3 - "$FP" <<'PY'
+          import json, sys
+          fp = sys.argv[1]
+          data = [{"relation": ["delegate_permission/common.handle_all_urls"],
+                   "target": {"namespace": "android_app", "package_name": "io.github.graphicwostudio.app",
+                              "sha256_cert_fingerprints": [fp]}}]
+          open(".well-known/assetlinks.json", "w").write(json.dumps(data, indent=2) + "\n")
+          PY
+          echo "Fingerprint: $FP"
+
+      - name: Save (the key is encrypted with your secret password)
+        run: |
+          git config user.name "GraphicWO"
+          git config user.email "graphicwo@users.noreply.github.com"
+          git add mobile/signing .well-known/assetlinks.json
+          git commit -m "Add encrypted Android signing key"
+          git push
+
+      - name: Build the app with the new key
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run build-apk.yml --ref main

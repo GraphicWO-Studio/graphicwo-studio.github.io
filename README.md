@@ -25,7 +25,7 @@
 
 ## 🗂 منظّم الملفات للويندوز — [`organizer/`](organizer/)
 
-⬇ **[نزّل GraphicWO_Organizer.exe](../../releases/latest/download/GraphicWO_Organizer.exe)**
+⬇ **[نزّل GraphicWO_Organizer.exe](../../releases/download/organizer-latest/GraphicWO_Organizer.exe)**
 
 - تنظيم تلقائي: `صور/JPG`، `صور/PNG`، `فيديو/MP4`، `مستندات/PDF`...
 - الصور المتشابهة والمكررة، والملفات المكررة (تطابق 100%)

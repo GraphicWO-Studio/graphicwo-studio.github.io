@@ -387,7 +387,18 @@ function esc(s) { return String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": 
 function b64ToBlob(b64, type = "image/png") { const bin = atob(b64); const a = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return new Blob([a], {type}); }
 function blobToB64(blob) { return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(",")[1]); r.onerror = rej; r.readAsDataURL(blob); }); }
 function fileName(rec, i) { const p = (rec.prompt || "image").replace(/[\\/:*?"<>|\n]+/g, " ").trim().slice(0, 40) || "image"; return `GraphicWO_${p}_${i ?? ""}${Date.now() % 100000}.${(rec.blob.type.split("/")[1] || "png").replace("jpeg", "jpg")}`; }
-function download(rec) {
+async function nativeSave(rec) {
+  const C = window.Capacitor;
+  if (!C || !C.isNativePlatform || !C.isNativePlatform() || !rec.blob) return false;
+  try {
+    const {Filesystem, Share} = C.Plugins;
+    const r = await Filesystem.writeFile({path: fileName(rec), data: await blobToB64(rec.blob), directory: "CACHE"});
+    await Share.share({title: "GraphicWO", files: [r.uri]});
+  } catch (e) { if (!/cancel/i.test(String(e?.message || e))) toast(String(e?.message || e).slice(0, 90)); }
+  return true;
+}
+async function download(rec) {
+  if (await nativeSave(rec)) return;
   if (!rec.blob) { const a = document.createElement("a"); a.href = rec.src; a.target = "_blank"; a.rel = "noopener"; document.body.appendChild(a); a.click(); a.remove(); toast(t("انفتحت الصورة — كبسة يمين ← حفظ الصورة")); return; }
   const url = URL.createObjectURL(rec.blob); const a = document.createElement("a");
   a.href = url; a.download = fileName(rec); document.body.appendChild(a); a.click(); a.remove();

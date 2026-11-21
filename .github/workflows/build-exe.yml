@@ -31,11 +31,17 @@ jobs:
           name: GraphicWO_Organizer
           path: organizer/dist/GraphicWO_Organizer.exe
 
+      - name: Replace old EXE in release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release delete-asset organizer-latest GraphicWO_Organizer.exe -y || true
+
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: organizer-v${{ github.run_number }}
-          name: "منظّم الملفات v${{ github.run_number }}"
+          tag_name: organizer-latest
+          name: "💻 منظّم الملفات — File Organizer (Windows)"
           make_latest: true
           files: organizer/dist/GraphicWO_Organizer.exe
           body: |

@@ -38,6 +38,44 @@ async function putFile(env, path, b64, message) {
   if (!r.ok) throw new Error("github " + r.status);
 }
 
+// ---- صور مجانية من Cloudflare Workers AI (10,000 neurons باليوم مجاناً لكل الحساب)
+const CF_MODELS = {
+  "flux-1-schnell": "@cf/black-forest-labs/flux-1-schnell",
+  "flux-2-klein-4b": "@cf/black-forest-labs/flux-2-klein-4b",
+  "lucid-origin": "@cf/leonardo/lucid-origin",
+  "phoenix": "@cf/leonardo/phoenix-1.0",
+};
+const b64ToBytes = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+const clamp16 = (v, lo, hi) => Math.max(lo, Math.min(hi, Math.round((+v || 1024) / 16) * 16));
+
+async function runImage(env, form) {
+  const prompt = clean(form.get("prompt"), 2000).trim();
+  if (prompt.length < 2) throw Object.assign(new Error("no_prompt"), {status: 400});
+  const key = String(form.get("model") || "flux-2-klein-4b");
+  const model = CF_MODELS[key] || CF_MODELS["flux-2-klein-4b"];
+  const width = clamp16(form.get("width"), 256, 1280), height = clamp16(form.get("height"), 256, 1280);
+  const seed = Math.floor(Math.random() * 2 ** 31);
+  const refs = form.getAll("image").filter(f => f && typeof f !== "string").slice(0, 4);
+  let out;
+  if (model.includes("flux-2-klein")) {
+    const fd = new FormData();
+    fd.append("prompt", prompt); fd.append("width", String(width)); fd.append("height", String(height)); fd.append("seed", String(seed));
+    for (let i = 0; i < refs.length; i++) {
+      if (refs[i].size > MAX_BYTES) throw Object.assign(new Error("bad_size"), {status: 413});
+      fd.append("input_image_" + i, refs[i]);
+    }
+    const r = new Response(fd);
+    out = await env.AI.run(model, {multipart: {body: r.body, contentType: r.headers.get("content-type")}});
+  } else if (model.includes("schnell")) {
+    out = await env.AI.run(model, {prompt, steps: 4, seed});
+  } else {
+    out = await env.AI.run(model, {prompt, width, height, seed});
+  }
+  if (out instanceof ReadableStream) return new Uint8Array(await new Response(out).arrayBuffer());
+  if (out && out.image) return b64ToBytes(out.image);
+  throw new Error("no_image");
+}
+
 export default {
   async fetch(req, env) {
     const allowed = String(env.ALLOWED_ORIGINS || "").split(",").map(s => s.trim()).filter(Boolean);
@@ -51,6 +89,25 @@ export default {
     if (req.method === "OPTIONS") return new Response(null, {headers: cors});
     const url = new URL(req.url);
     if (req.method === "GET" && url.pathname === "/") return json({ok: true, service: "graphicwo-gateway"}, 200, cors);
+    if (req.method === "POST" && url.pathname === "/img") {
+      if (!allowed.includes(origin)) return json({error: "forbidden"}, 403, cors);
+      if (!env.AI) return json({error: "not_configured"}, 503, cors);
+      if (env.IMG_LIMITER) {
+        const {success} = await env.IMG_LIMITER.limit({key: req.headers.get("CF-Connecting-IP") || "anon"});
+        if (!success) return json({error: "rate_limited"}, 429, cors);
+      }
+      let form;
+      try { form = await req.formData(); } catch { return json({error: "bad_request"}, 400, cors); }
+      try {
+        const bytes = await runImage(env, form);
+        const type = sniff(bytes) === "png" ? "image/png" : sniff(bytes) === "webp" ? "image/webp" : "image/jpeg";
+        return new Response(bytes, {headers: {"Content-Type": type, "Cache-Control": "no-store", ...cors}});
+      } catch (e) {
+        const m = String(e && e.message || e);
+        const quota = /neuron|quota|limit|capacity|4006|daily/i.test(m);
+        return json({error: quota ? "daily_limit" : "failed", detail: m.slice(0, 160)}, e.status || (quota ? 429 : 502), cors);
+      }
+    }
     if (req.method !== "POST" || url.pathname !== "/like") return json({error: "not_found"}, 404, cors);
     if (!allowed.includes(origin)) return json({error: "forbidden"}, 403, cors);
     if (!env.DATASET_TOKEN) return json({error: "not_configured"}, 503, cors);

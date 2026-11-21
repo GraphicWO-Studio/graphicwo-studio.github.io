@@ -31,6 +31,7 @@ a{color:inherit}
 .card h2 span{color:var(--c)}
 .card ul{margin:0;padding-inline-start:18px;color:var(--muted);font-size:14.5px}
 .btn{display:block;text-align:center;text-decoration:none;font-weight:800;font-size:17px;padding:13px;border-radius:14px;background:var(--c);color:#06110a;margin-top:auto}
+[dir=ltr] .card ul{padding-inline-start:18px}
 .btn.alt{background:transparent;color:var(--fg);border:1px solid var(--line);font-size:14px;padding:9px;font-weight:600}
 .small{color:var(--muted);font-size:13px;text-align:center}
 .shots{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:22px}
@@ -46,6 +47,9 @@ footer a{color:var(--g)}
     <img class="av" src="assets/avatar.png" alt="GraphicWO">
     <img class="logo" src="assets/logo.png" alt="GraphicWO">
     <span class="badge">مجاني 100% • مفتوح المصدر</span>
+    <select id="lang" aria-label="Language" style="background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:6px 10px;font:inherit">
+      <option value="ar">🌐 العربية</option><option value="en">🌐 English</option><option value="fr">🌐 Français</option>
+    </select>
     <h1>أدوات GraphicWO</h1>
     <p>أدوات بسيطة وقوية بتوفّرلك وقت. ببلاش وبدون إعلانات، وبتشتغل على جهازك.</p>
   </section>
@@ -62,7 +66,9 @@ footer a{color:var(--g)}
           <li>تعديل على صورتك، ومعرض بيحفظ كل صورك</li>
         </ul>
         <a class="btn" href="studio/">✨ افتح الاستوديو</a>
+        <a class="btn alt" href="https://github.com/GraphicWO-Studio/graphicwo-studio.github.io/releases/latest/download/GraphicWO_Studio.apk">⬇ نزّل التطبيق للموبايل</a>
         <div class="small">بيشتغل بالمتصفح على الموبايل واللابتوب</div>
+        <div class="small">أو من المتصفح: «إضافة إلى الشاشة الرئيسية»</div>
       </div>
     </article>
 
@@ -93,5 +99,23 @@ footer a{color:var(--g)}
     <a href="https://github.com/GraphicWO-Studio/graphicwo-studio.github.io" target="_blank" rel="noopener">الكود على GitHub</a>
   </footer>
 </div>
+<script>
+(() => {
+  const DICT = {"en": {"GraphicWO — أدوات مجانية": "GraphicWO — Free tools", "مجاني 100% • مفتوح المصدر": "100% free • Open source", "أدوات GraphicWO": "GraphicWO Tools", "أدوات بسيطة وقوية بتوفّرلك وقت. ببلاش وبدون إعلانات، وبتشتغل على جهازك.": "Simple, powerful tools that save you time. Free, no ads, and they run on your device.", "🎨": "🎨", "استوديو الصور": "AI Image Studio", "بالذكاء الاصطناعي": "", "اكتب وصف بالعربي وبتطلعلك الصورة": "Describe it in any language and get the image", "Pollinations بدون حساب، وNano Banana وGPT Image بحساب Puter المجاني": "Pollinations with no account; Nano Banana & GPT Image with a free Puter account", "13 ستايل، 6 مقاسات (ريلز، يوتيوب، بوست)، ولحد 4 صور بالمرة": "13 styles, 6 sizes (reels, YouTube, posts), up to 4 images at once", "تعديل على صورتك، ومعرض بيحفظ كل صورك": "Edit your own photos, with a gallery that keeps everything", "✨ افتح الاستوديو": "✨ Open the studio", "بيشتغل بالمتصفح على الموبايل واللابتوب": "Works in the browser on phone and laptop", "منظّم الملفات": "File Organizer", "للويندوز": "for Windows", "بيرتّب الملفات بمجلدات: صور/JPG، فيديو/MP4، مستندات/PDF...": "Sorts files into folders: Images/JPG, Video/MP4, Documents/PDF...", "بيلاقي الصور المتشابهة والملفات المكررة": "Finds similar images and duplicate files", "إعادة تسمية جماعية بتاريخ التصوير، ومعاينة، وحذف لسلة المحذوفات": "Batch rename by photo date, preview, and delete to Recycle Bin", "تراجع عن آخر 30 عملية، وما بيلمس المجلدات الفرعية": "Undo the last 30 actions; never touches subfolders", "⬇ نزّل البرنامج (EXE)": "⬇ Download for Windows (EXE)", "كل النسخ": "All versions", "إذا طلع «Windows protected your PC»: More info ← Run anyway": "If “Windows protected your PC” appears: More info → Run anyway", "صُنع بـ 💚 بواسطة": "Made with 💚 by", "الكود على GitHub": "Code on GitHub", "منظم الملفات": "File Organizer", "الصور المتشابهة": "Similar images", "📱 تطبيق أندرويد (APK)": "📱 Android app (APK)", "⬇ نزّل التطبيق للموبايل": "⬇ Download the Android app", "أو من المتصفح: «إضافة إلى الشاشة الرئيسية»": "Or from the browser: “Add to Home screen”", "أدوات GraphicWO المجانية: استوديو صور بالذكاء الاصطناعي ومنظّم ملفات للويندوز": "Free GraphicWO tools: AI image studio and a Windows file organizer"}, "fr": {"GraphicWO — أدوات مجانية": "GraphicWO — Outils gratuits", "مجاني 100% • مفتوح المصدر": "100 % gratuit • Open source", "أدوات GraphicWO": "Outils GraphicWO", "أدوات بسيطة وقوية بتوفّرلك وقت. ببلاش وبدون إعلانات، وبتشتغل على جهازك.": "Des outils simples et puissants qui vous font gagner du temps. Gratuits, sans pub, et ils fonctionnent sur votre appareil.", "🎨": "🎨", "استوديو الصور": "Studio d'images IA", "بالذكاء الاصطناعي": "", "اكتب وصف بالعربي وبتطلعلك الصورة": "Décrivez-la dans n'importe quelle langue et obtenez l'image", "Pollinations بدون حساب، وNano Banana وGPT Image بحساب Puter المجاني": "Pollinations sans compte ; Nano Banana et GPT Image avec un compte Puter gratuit", "13 ستايل، 6 مقاسات (ريلز، يوتيوب، بوست)، ولحد 4 صور بالمرة": "13 styles, 6 formats (reels, YouTube, posts), jusqu'à 4 images à la fois", "تعديل على صورتك، ومعرض بيحفظ كل صورك": "Modifiez vos photos, avec une galerie qui garde tout", "✨ افتح الاستوديو": "✨ Ouvrir le studio", "بيشتغل بالمتصفح على الموبايل واللابتوب": "Fonctionne dans le navigateur, sur mobile et PC", "منظّم الملفات": "Organiseur de fichiers", "للويندوز": "pour Windows", "بيرتّب الملفات بمجلدات: صور/JPG، فيديو/MP4، مستندات/PDF...": "Range les fichiers en dossiers : Images/JPG, Vidéo/MP4, Documents/PDF...", "بيلاقي الصور المتشابهة والملفات المكررة": "Trouve les images similaires et les doublons", "إعادة تسمية جماعية بتاريخ التصوير، ومعاينة، وحذف لسلة المحذوفات": "Renommage par lot selon la date de prise de vue, aperçu, suppression vers la corbeille", "تراجع عن آخر 30 عملية، وما بيلمس المجلدات الفرعية": "Annulation des 30 dernières actions ; ne touche jamais aux sous-dossiers", "⬇ نزّل البرنامج (EXE)": "⬇ Télécharger pour Windows (EXE)", "كل النسخ": "Toutes les versions", "إذا طلع «Windows protected your PC»: More info ← Run anyway": "Si « Windows a protégé votre PC » s'affiche : Informations complémentaires → Exécuter quand même", "صُنع بـ 💚 بواسطة": "Fait avec 💚 par", "الكود على GitHub": "Code sur GitHub", "منظم الملفات": "Organiseur de fichiers", "الصور المتشابهة": "Images similaires", "📱 تطبيق أندرويد (APK)": "📱 Application Android (APK)", "⬇ نزّل التطبيق للموبايل": "⬇ Télécharger l'app Android", "أو من المتصفح: «إضافة إلى الشاشة الرئيسية»": "Ou depuis le navigateur : « Ajouter à l'écran d'accueil »", "أدوات GraphicWO المجانية: استوديو صور بالذكاء الاصطناعي ومنظّم ملفات للويندوز": "Outils GraphicWO gratuits : studio d'images IA et organiseur de fichiers Windows"}};
+  let L = null; try { L = localStorage.getItem("gwo_lang"); L = L && JSON.parse(L); } catch {}
+  if (!["ar","en","fr"].includes(L)) { const nl = (navigator.language || "en").slice(0,2).toLowerCase(); L = ["ar","fr"].includes(nl) ? nl : "en"; }
+  const t = s => (L !== "ar" && DICT[L][s] !== undefined) ? DICT[L][s] : s;
+  document.documentElement.lang = L; document.documentElement.dir = L === "ar" ? "rtl" : "ltr";
+  if (L !== "ar") {
+    document.title = t(document.title);
+    const AR = /[\u0600-\u06FF]/, w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT); let n;
+    while ((n = w.nextNode())) { const s = n.nodeValue.trim(); if (s && AR.test(s) && !n.parentElement.closest("option")) n.nodeValue = n.nodeValue.replace(s, t(s)); }
+    document.querySelectorAll("[alt]").forEach(e => { const v = e.getAttribute("alt"); if (AR.test(v)) e.setAttribute("alt", t(v)); });
+    const md = document.querySelector('meta[name=description]'); if (md) md.content = t(md.content);
+  }
+  const sel = document.getElementById("lang"); sel.value = L;
+  sel.onchange = () => { try { localStorage.setItem("gwo_lang", JSON.stringify(sel.value)); } catch {} location.reload(); };
+})();
+</script>
 </body>
 </html>

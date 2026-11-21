@@ -39,6 +39,7 @@ header .spacer{flex:1}
 header .logo{height:40px}
 .iconbtn{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px 12px;cursor:pointer;white-space:nowrap}
 .iconbtn:hover{border-color:var(--accent)}
+.langsel{width:auto;padding:8px 10px}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px}
 .side{display:flex;flex-direction:column;gap:14px;align-self:start;position:sticky;top:16px}
 @media(max-width:980px){.side{position:static}}
@@ -126,6 +127,7 @@ footer{grid-column:1/-1;text-align:center;color:var(--muted);font-size:12.5px;pa
   .app{display:flex;flex-direction:column;padding:10px;gap:10px;padding-bottom:calc(96px + env(safe-area-inset-bottom))}
   header{padding:8px 12px;gap:10px;position:sticky;top:0;z-index:20;border-radius:0 0 14px 14px;margin:-10px -10px 0}
   header .logo,header .lbl,.desk{display:none}
+  .langsel{padding:7px 4px;font-size:14px;max-width:118px}
   header .avatar{width:38px;height:38px}
   header h1{font-size:16px}
   header .sub{font-size:11px}
@@ -165,6 +167,9 @@ footer{grid-column:1/-1;text-align:center;color:var(--muted);font-size:12.5px;pa
       <div class="sub">تطوير GraphicWO</div>
     </div>
     <div class="spacer"></div>
+    <select class="iconbtn langsel" id="langSel" aria-label="Language">
+      <option value="ar">🌐 العربية</option><option value="en">🌐 English</option><option value="fr">🌐 Français</option>
+    </select>
     <button class="iconbtn" id="btnSettings">⚙<span class="lbl"> الإعدادات</span></button>
     <img class="logo" src="data:image/png;base64,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" alt="GraphicWO">
   </header>
@@ -262,6 +267,8 @@ footer{grid-column:1/-1;text-align:center;color:var(--muted);font-size:12.5px;pa
     <label class="t">حساب Puter (مجاني)</label>
     <div class="row" style="margin-bottom:6px"><span class="hint" id="puterStatus2"></span><button class="iconbtn" id="btnPuter2" style="flex:0"></button></div>
     <div class="hint" style="margin-bottom:14px">Puter بيعطي كل حساب رصيد مجاني بيتجدد كل شهر. لتشوف قديش ضلّلك: <a href="https://puter.com/dashboard" target="_blank" rel="noopener">puter.com/dashboard</a>. إذا خلص الرصيد، Pollinations بيضل شغّال بلاش.</div>
+    <label class="t">اللغة</label>
+    <select id="langSel2" style="margin-bottom:14px"><option value="ar">العربية</option><option value="en">English</option><option value="fr">Français</option></select>
     <label class="t">الألوان</label>
     <div class="themes" id="themes"></div>
     <div class="row" style="margin-top:16px">
@@ -281,24 +288,49 @@ const store = {
   set(k, v) { try { localStorage.setItem("gwo_" + k, JSON.stringify(v)); } catch {} }
 };
 
+
+// ---------------- اللغات (عربي / English / Français)
+const DICT = {"en": {"استوديو الصور بالذكاء الاصطناعي — GraphicWO": "AI Image Studio — GraphicWO", "استوديو الصور بالذكاء الاصطناعي": "AI Image Studio", "تطوير GraphicWO": "by GraphicWO", "الإعدادات": "Settings", "⚙ الإعدادات": "⚙ Settings", "المحرك": "Engine", "مجاني — بدون حساب": "Free — no account", "مجاني — أقوى الموديلات": "Free — top models", "الموديل": "Model", "وصف الصورة (البرومبت)": "Image description (prompt)", "اكتب شو بدك تشوف... مثلاً: قطة لابسة نظارات شمسية عم تشرب قهوة بمقهى بباريس، إضاءة غروب، واقعية": "Describe what you want to see... e.g. a cat wearing sunglasses drinking coffee in a Paris café, sunset light, realistic", "0 حرف": "0 characters", "🎲 فكرة عشوائية": "🎲 Random idea", "✖ مسح": "✖ Clear", "الستايل": "Style", "المقاس": "Size", "عدد الصور": "Number of images", "خيارات متقدمة": "Advanced options", "الجودة": "Quality", "Seed (نفس الرقم = نفس الصورة)": "Seed (same number = same image)", "عشوائي": "Random", "خلي الذكاء الاصطناعي يحسّن البرومبت (بيفيد لو كتبت بالعربي)": "Let AI improve the prompt (helps with short or non-English prompts)", "أشياء ما بدك ياها بالصورة": "Things you don't want in the image", "مثلاً: كتابة، علامة مائية، تشويه": "e.g. text, watermark, distortion", "صورة مرجعية": "Reference image", "(اختياري — للتعديل عليها)": "(optional — to edit it)", "📎 اسحب صورة لهون، أو اكبس لتختار، أو الصقها بـ Ctrl+V": "📎 Drop an image here, tap to choose, or paste with Ctrl+V", "Ctrl + Enter للإنشاء السريع": "Ctrl + Enter to generate quickly", "اكتب وصف الصورة واكبس «أنشئ الصورة»": "Describe your image and press “Generate”", "كل شي مجاني 💚 Pollinations بدون حساب، وPuter بحساب مجاني لموديلات أقوى": "Everything is free 💚 Pollinations with no account, Puter with a free account for stronger models", "🖼 معرض صوري": "🖼 My gallery", "🔍 دوّر بالبرومبت...": "🔍 Search prompts...", "© GraphicWO — مجاني 100% • الصور بتنحفظ على جهازك بس •": "© GraphicWO — 100% free • images stay on your device •", "التطبيق مجاني بالكامل وما بيحتاج أي مفتاح.": "The app is completely free and needs no API key.", "حساب Puter (مجاني)": "Puter account (free)", "Puter بيعطي كل حساب رصيد مجاني بيتجدد كل شهر. لتشوف قديش ضلّلك:": "Puter gives every account a free allowance that renews monthly. To see what's left:", ". إذا خلص الرصيد، Pollinations بيضل شغّال بلاش.": ". If it runs out, Pollinations keeps working for free.", "الألوان": "Colors", "اللغة": "Language", "💾 حفظ": "💾 Save", "بدون": "None", "واقعي": "Realistic", "سينمائي": "Cinematic", "أنمي": "Anime", "ألوان مائية": "Watercolor", "بكسل آرت": "Pixel art", "لوغو": "Logo", "بوستر": "Poster", "نيون": "Neon", "زيتية": "Oil painting", "ستيكر": "Sticker", "مكعبات": "Voxel", "GPT Image Flare — بيكتب نصوص منيح": "GPT Image Flare — great with text", "GPT Image Mini — بيوفّر رصيد": "GPT Image Mini — saves credit", "Nano Banana 2 Lite — بيوفّر رصيد": "Nano Banana 2 Lite — saves credit", "Nano Banana 2 — سريع وقوي (مستحسن)": "Nano Banana 2 — fast & strong (recommended)", "Nano Banana Pro — أعلى جودة (بياكل رصيد أكتر)": "Nano Banana Pro — best quality (uses more credit)", "Nano Banana الأصلي": "Nano Banana (original)", "Pollinations رجّع شي مو صورة. جرّب موديل تاني.": "Pollinations returned something that isn't an image. Try another model.", "Pollinations مشغول هلق، جرّب بعد دقيقة أو استخدم Puter.": "Pollinations is busy right now. Try again in a minute or use Puter.", "Puter ما رجّع صورة": "Puter didn't return an image", "Sana — مجاني": "Sana — free", "{n} حرف": "{n} characters", "أهلا وسهلا ✅": "Welcome ✅", "اكتب وصف الصورة أولاً ✍": "Write an image description first ✍", "الصور اللي بتعملها بتنحفظ هون تلقائياً": "Images you create are saved here automatically", "الصورة المرجعية بتشتغل مع محرك Puter.": "Reference images work with the Puter engine.", "الصورة بتنبعت مع البرومبت (مثلاً: «خلّي الخلفية بحر» أو «حوّلها لأنمي»).": "The image is sent with your prompt (e.g. “make the background a beach” or “turn it into anime”).", "انحفظت الإعدادات 💾": "Settings saved 💾", "انضافت كصورة مرجعية 📎 — اكتب التعديل اللي بدك ياه": "Added as reference 📎 — describe the edit you want", "انفتحت الصورة — كبسة يمين ← حفظ الصورة": "Image opened — right-click → Save image", "انلصقت الصورة كمرجع 📎": "Image pasted as reference 📎", "انلغى": "Cancelled", "انمسح المعرض": "Gallery cleared", "تسجيل خروج": "Sign out", "تلقائي": "Auto", "تم النسخ 📋": "Copied 📋", "حوّلتك لمحرك Puter لأنه هو اللي بيعدّل على الصور 📎": "Switched to Puter — it's the engine that edits images 📎", "خطأ": "error", "خلص رصيد Puter المجاني لهالشهر. استخدم Pollinations (مجاني بدون حساب) لحد ما يتجدد.": "Your free Puter credit for this month is used up. Use Pollinations (free, no account) until it renews.", "رجّعت إعدادات الصورة ↺": "Image settings restored ↺", "سجّلت خروج": "Signed out", "عالية": "High", "عم تنعمل الصورة بـ {m}... {s} ثانية": "Creating the image with {m}... {s}s", "عم ينعملو {n} صور بـ {m}... {s} ثانية": "Creating {n} images with {m}... {s}s", "لازم تسجّل دخول بحساب Puter أولاً (اكبس «تسجيل دخول»).": "Sign in to your Puter account first (press “Sign in”).", "لازم تسجّل دخول بحساب Puter المجاني (مرة وحدة)": "Sign in with a free Puter account (one time)", "لازم تسجّل دخول بحساب Puter المجاني، أو استخدم Pollinations": "Sign in with a free Puter account, or use Pollinations", "ما تم تسجيل الدخول": "Sign-in didn't complete", "ما في نتائج": "No results", "ما قدر يحمّل Puter. تأكد من النت وحدّث الصفحة.": "Couldn't load Puter. Check your connection and refresh.", "ما قدرت انسخ": "Couldn't copy", "ما قدرت حمّل الصورة من Pollinations": "Couldn't load the image from Pollinations", "متوسطة": "Medium", "مجاني": "free", "مجاني بحساب Puter، ورصيدك المجاني بيتجدد كل شهر. موديلات أقوى، وبيعدّل على الصورة المرجعية.": "Free with a Puter account; your free credit renews monthly. Stronger models, and it can edit reference images.", "مجاني بدون حساب: صورة وحدة كل 45 ثانية تقريباً (التطبيق بيستنى لحاله). لصور أسرع وأقوى استخدم Puter.": "Free, no account: about one image every 45 seconds (the app waits automatically). For faster, stronger images use Puter.", "منخفضة (بتوفّر رصيد)": "Low (saves credit)", "نزّل الصورة وارجع ضيفها كمرجع": "Download the image, then add it as a reference", "↺ استخدم": "↺ Reuse", "↺ استخدم الإعدادات": "↺ Reuse settings", "⏳ Pollinations المجاني بيسمح بصورة كل 45 ثانية — باقي {s} ثانية وبكمّل لحالي (أو استخدم Puter لصور فورية)": "⏳ Free Pollinations allows one image every 45 s — {s}s left, I'll continue automatically (or use Puter for instant images)", "⏹ إيقاف": "⏹ Stop", "⚠ ما قدر يحمّل Puter — تأكد من النت": "⚠ Couldn't load Puter — check your connection", "⚠ متأكد؟ اكبس كمان مرة": "⚠ Sure? Press again", "✅ {n} صورة جاهزة بـ {s} ثانية": "✅ {n} image(s) ready in {s}s", "✅ مسجّل دخول": "✅ Signed in", "✨ أنشئ الصورة": "✨ Generate", "⬇ تنزيل": "⬇ Download", "📋 نسخ البرومبت": "📋 Copy prompt", "📎 عدّل عليها": "📎 Edit it", "🔁 نسخة تانية": "🔁 Variation", "🔑 تسجيل دخول / حساب جديد": "🔑 Sign in / create account", "🗑 مسح المعرض": "🗑 Clear gallery"}, "fr": {"استوديو الصور بالذكاء الاصطناعي — GraphicWO": "Studio d'images IA — GraphicWO", "استوديو الصور بالذكاء الاصطناعي": "Studio d'images IA", "تطوير GraphicWO": "par GraphicWO", "الإعدادات": "Paramètres", "⚙ الإعدادات": "⚙ Paramètres", "المحرك": "Moteur", "مجاني — بدون حساب": "Gratuit — sans compte", "مجاني — أقوى الموديلات": "Gratuit — meilleurs modèles", "الموديل": "Modèle", "وصف الصورة (البرومبت)": "Description de l'image (prompt)", "اكتب شو بدك تشوف... مثلاً: قطة لابسة نظارات شمسية عم تشرب قهوة بمقهى بباريس، إضاءة غروب، واقعية": "Décrivez ce que vous voulez voir... ex : un chat avec des lunettes de soleil buvant un café à Paris, lumière du coucher de soleil, réaliste", "0 حرف": "0 caractère", "🎲 فكرة عشوائية": "🎲 Idée aléatoire", "✖ مسح": "✖ Effacer", "الستايل": "Style", "المقاس": "Format", "عدد الصور": "Nombre d'images", "خيارات متقدمة": "Options avancées", "الجودة": "Qualité", "Seed (نفس الرقم = نفس الصورة)": "Seed (même nombre = même image)", "عشوائي": "Aléatoire", "خلي الذكاء الاصطناعي يحسّن البرومبت (بيفيد لو كتبت بالعربي)": "Laisser l'IA améliorer le prompt (utile pour les prompts courts ou non anglais)", "أشياء ما بدك ياها بالصورة": "Éléments à éviter dans l'image", "مثلاً: كتابة، علامة مائية، تشويه": "ex : texte, filigrane, déformation", "صورة مرجعية": "Image de référence", "(اختياري — للتعديل عليها)": "(facultatif — pour la modifier)", "📎 اسحب صورة لهون، أو اكبس لتختار، أو الصقها بـ Ctrl+V": "📎 Déposez une image ici, touchez pour choisir ou collez avec Ctrl+V", "Ctrl + Enter للإنشاء السريع": "Ctrl + Entrée pour générer rapidement", "اكتب وصف الصورة واكبس «أنشئ الصورة»": "Décrivez votre image et appuyez sur « Générer »", "كل شي مجاني 💚 Pollinations بدون حساب، وPuter بحساب مجاني لموديلات أقوى": "Tout est gratuit 💚 Pollinations sans compte, Puter avec un compte gratuit pour des modèles plus puissants", "🖼 معرض صوري": "🖼 Ma galerie", "🔍 دوّر بالبرومبت...": "🔍 Rechercher...", "© GraphicWO — مجاني 100% • الصور بتنحفظ على جهازك بس •": "© GraphicWO — 100 % gratuit • les images restent sur votre appareil •", "التطبيق مجاني بالكامل وما بيحتاج أي مفتاح.": "L'application est entièrement gratuite et ne nécessite aucune clé.", "حساب Puter (مجاني)": "Compte Puter (gratuit)", "Puter بيعطي كل حساب رصيد مجاني بيتجدد كل شهر. لتشوف قديش ضلّلك:": "Puter offre à chaque compte un crédit gratuit renouvelé chaque mois. Pour voir ce qu'il reste :", ". إذا خلص الرصيد، Pollinations بيضل شغّال بلاش.": ". S'il est épuisé, Pollinations reste gratuit.", "الألوان": "Couleurs", "اللغة": "Langue", "💾 حفظ": "💾 Enregistrer", "بدون": "Aucun", "واقعي": "Réaliste", "سينمائي": "Cinématique", "أنمي": "Anime", "ألوان مائية": "Aquarelle", "بكسل آرت": "Pixel art", "لوغو": "Logo", "بوستر": "Affiche", "نيون": "Néon", "زيتية": "Peinture à l'huile", "ستيكر": "Sticker", "مكعبات": "Voxel", "GPT Image Flare — بيكتب نصوص منيح": "GPT Image Flare — excellent pour le texte", "GPT Image Mini — بيوفّر رصيد": "GPT Image Mini — économise le crédit", "Nano Banana 2 Lite — بيوفّر رصيد": "Nano Banana 2 Lite — économise le crédit", "Nano Banana 2 — سريع وقوي (مستحسن)": "Nano Banana 2 — rapide et puissant (recommandé)", "Nano Banana Pro — أعلى جودة (بياكل رصيد أكتر)": "Nano Banana Pro — meilleure qualité (consomme plus)", "Nano Banana الأصلي": "Nano Banana (original)", "Pollinations رجّع شي مو صورة. جرّب موديل تاني.": "Pollinations n'a pas renvoyé d'image. Essayez un autre modèle.", "Pollinations مشغول هلق، جرّب بعد دقيقة أو استخدم Puter.": "Pollinations est occupé. Réessayez dans une minute ou utilisez Puter.", "Puter ما رجّع صورة": "Puter n'a pas renvoyé d'image", "Sana — مجاني": "Sana — gratuit", "{n} حرف": "{n} caractères", "أهلا وسهلا ✅": "Bienvenue ✅", "اكتب وصف الصورة أولاً ✍": "Écrivez d'abord une description ✍", "الصور اللي بتعملها بتنحفظ هون تلقائياً": "Les images créées sont enregistrées ici automatiquement", "الصورة المرجعية بتشتغل مع محرك Puter.": "Les images de référence fonctionnent avec le moteur Puter.", "الصورة بتنبعت مع البرومبت (مثلاً: «خلّي الخلفية بحر» أو «حوّلها لأنمي»).": "L'image est envoyée avec le prompt (ex : « mets une plage en fond » ou « transforme-la en anime »).", "انحفظت الإعدادات 💾": "Paramètres enregistrés 💾", "انضافت كصورة مرجعية 📎 — اكتب التعديل اللي بدك ياه": "Ajoutée comme référence 📎 — décrivez la modification", "انفتحت الصورة — كبسة يمين ← حفظ الصورة": "Image ouverte — clic droit → Enregistrer l'image", "انلصقت الصورة كمرجع 📎": "Image collée comme référence 📎", "انلغى": "Annulé", "انمسح المعرض": "Galerie vidée", "تسجيل خروج": "Se déconnecter", "تلقائي": "Auto", "تم النسخ 📋": "Copié 📋", "حوّلتك لمحرك Puter لأنه هو اللي بيعدّل على الصور 📎": "Passage à Puter — c'est le moteur qui modifie les images 📎", "خطأ": "erreur", "خلص رصيد Puter المجاني لهالشهر. استخدم Pollinations (مجاني بدون حساب) لحد ما يتجدد.": "Votre crédit Puter gratuit du mois est épuisé. Utilisez Pollinations (gratuit, sans compte) en attendant.", "رجّعت إعدادات الصورة ↺": "Paramètres de l'image restaurés ↺", "سجّلت خروج": "Déconnecté", "عالية": "Haute", "عم تنعمل الصورة بـ {m}... {s} ثانية": "Création de l'image avec {m}... {s} s", "عم ينعملو {n} صور بـ {m}... {s} ثانية": "Création de {n} images avec {m}... {s} s", "لازم تسجّل دخول بحساب Puter أولاً (اكبس «تسجيل دخول»).": "Connectez-vous d'abord à votre compte Puter (« Se connecter »).", "لازم تسجّل دخول بحساب Puter المجاني (مرة وحدة)": "Connectez-vous avec un compte Puter gratuit (une seule fois)", "لازم تسجّل دخول بحساب Puter المجاني، أو استخدم Pollinations": "Connectez-vous avec un compte Puter gratuit, ou utilisez Pollinations", "ما تم تسجيل الدخول": "Connexion non effectuée", "ما في نتائج": "Aucun résultat", "ما قدر يحمّل Puter. تأكد من النت وحدّث الصفحة.": "Impossible de charger Puter. Vérifiez la connexion et actualisez.", "ما قدرت انسخ": "Copie impossible", "ما قدرت حمّل الصورة من Pollinations": "Impossible de charger l'image depuis Pollinations", "متوسطة": "Moyenne", "مجاني": "gratuit", "مجاني بحساب Puter، ورصيدك المجاني بيتجدد كل شهر. موديلات أقوى، وبيعدّل على الصورة المرجعية.": "Gratuit avec un compte Puter ; le crédit gratuit se renouvelle chaque mois. Modèles plus puissants, et modification d'images de référence.", "مجاني بدون حساب: صورة وحدة كل 45 ثانية تقريباً (التطبيق بيستنى لحاله). لصور أسرع وأقوى استخدم Puter.": "Gratuit, sans compte : environ une image toutes les 45 secondes (l'app attend automatiquement). Pour plus de rapidité et de qualité, utilisez Puter.", "منخفضة (بتوفّر رصيد)": "Basse (économise le crédit)", "نزّل الصورة وارجع ضيفها كمرجع": "Téléchargez l'image puis ajoutez-la comme référence", "↺ استخدم": "↺ Réutiliser", "↺ استخدم الإعدادات": "↺ Réutiliser les réglages", "⏳ Pollinations المجاني بيسمح بصورة كل 45 ثانية — باقي {s} ثانية وبكمّل لحالي (أو استخدم Puter لصور فورية)": "⏳ Pollinations gratuit autorise une image toutes les 45 s — encore {s} s, je continue automatiquement (ou utilisez Puter pour des images instantanées)", "⏹ إيقاف": "⏹ Arrêter", "⚠ ما قدر يحمّل Puter — تأكد من النت": "⚠ Impossible de charger Puter — vérifiez la connexion", "⚠ متأكد؟ اكبس كمان مرة": "⚠ Sûr ? Appuyez encore", "✅ {n} صورة جاهزة بـ {s} ثانية": "✅ {n} image(s) prête(s) en {s} s", "✅ مسجّل دخول": "✅ Connecté", "✨ أنشئ الصورة": "✨ Générer", "⬇ تنزيل": "⬇ Télécharger", "📋 نسخ البرومبت": "📋 Copier le prompt", "📎 عدّل عليها": "📎 Modifier", "🔁 نسخة تانية": "🔁 Variante", "🔑 تسجيل دخول / حساب جديد": "🔑 Se connecter / créer un compte", "🗑 مسح المعرض": "🗑 Vider la galerie"}};
+const IDEAS_I18N = {"en": ["A floating castle above the clouds at sunset, waterfalls pouring down, epic fantasy", "An astronaut sitting on the moon drinking tea, Earth in the background, realistic", "An old Damascus street at night with colorful lanterns and light rain, cinematic", "A cute little robot watering a flower in a room full of plants, 3D", "A lion made of fire and smoke, black background, dramatic", "A gamer desk with green RGB lighting, PC and monitors, top view", "A futuristic desert city with glass towers and palm trees"], "fr": ["Un château flottant au-dessus des nuages au coucher du soleil, cascades, fantasy épique", "Un astronaute assis sur la Lune buvant du thé, la Terre en fond, réaliste", "Une vieille rue de Damas la nuit avec des lanternes colorées et une pluie fine, cinématique", "Un petit robot mignon arrosant une fleur dans une pièce pleine de plantes, 3D", "Un lion fait de feu et de fumée, fond noir, dramatique", "Un bureau de gamer éclairé en RGB vert, PC et écrans, vue de dessus", "Une ville futuriste dans le désert avec tours de verre et palmiers"]};
+let LANG = store.get("lang", null);
+if (!["ar", "en", "fr"].includes(LANG)) { const nl = (navigator.language || "en").slice(0, 2).toLowerCase(); LANG = ["ar", "fr"].includes(nl) ? nl : "en"; }
+function t(s, vars) {
+  let out = (LANG !== "ar" && DICT[LANG] && DICT[LANG][s]) || s;
+  if (vars) out = out.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? "");
+  return out;
+}
+function applyI18n() {
+  document.documentElement.lang = LANG;
+  document.documentElement.dir = LANG === "ar" ? "rtl" : "ltr";
+  document.title = t(document.title);
+  if (LANG === "ar") return;
+  const AR = /[\u0600-\u06FF]/;
+  const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  let n;
+  while ((n = w.nextNode())) { const s = n.nodeValue.trim(); if (s && AR.test(s)) { const tr = t(s); if (tr !== s) n.nodeValue = n.nodeValue.replace(s, tr); } }
+  document.querySelectorAll("[placeholder],[title],[alt]").forEach(el => ["placeholder", "title", "alt"].forEach(a => { const v = el.getAttribute(a); if (v && AR.test(v)) el.setAttribute(a, t(v)); }));
+}
+function setLang(l) { store.set("lang", l); location.reload(); }
+applyI18n();
+
 // ---------------- إعدادات المحركات
 const ENGINES = {
   pollinations: {
-    models: [["sana", "Sana — مجاني"]],
-    hint: "مجاني بدون حساب: صورة وحدة كل 45 ثانية تقريباً (التطبيق بيستنى لحاله). لصور أسرع وأقوى استخدم Puter.",
+    models: [["sana", t("Sana — مجاني")]],
+    hint: t("مجاني بدون حساب: صورة وحدة كل 45 ثانية تقريباً (التطبيق بيستنى لحاله). لصور أسرع وأقوى استخدم Puter."),
     quality: null, refs: false, seed: true, enhance: true
   },
   puter: {
-    models: [["google/gemini-3.1-flash-image", "Nano Banana 2 — سريع وقوي (مستحسن)"],
-             ["google/gemini-3.1-flash-lite-image", "Nano Banana 2 Lite — بيوفّر رصيد"],
-             ["google/gemini-3-pro-image", "Nano Banana Pro — أعلى جودة (بياكل رصيد أكتر)"],
-             ["google/gemini-2.5-flash-image", "Nano Banana الأصلي"],
-             ["gpt-image-2.6-flare", "GPT Image Flare — بيكتب نصوص منيح"],
+    models: [["google/gemini-3.1-flash-image", t("Nano Banana 2 — سريع وقوي (مستحسن)")],
+             ["google/gemini-3.1-flash-lite-image", t("Nano Banana 2 Lite — بيوفّر رصيد")],
+             ["google/gemini-3-pro-image", t("Nano Banana Pro — أعلى جودة (بياكل رصيد أكتر)")],
+             ["google/gemini-2.5-flash-image", t("Nano Banana الأصلي")],
+             ["gpt-image-2.6-flare", t("GPT Image Flare — بيكتب نصوص منيح")],
              ["openai/gpt-image-2", "GPT Image 2"],
-             ["gpt-image-1-mini", "GPT Image Mini — بيوفّر رصيد"],
+             ["gpt-image-1-mini", t("GPT Image Mini — بيوفّر رصيد")],
              ["x-ai/grok-imagine-image", "Grok Imagine"]],
-    hint: "مجاني بحساب Puter، ورصيدك المجاني بيتجدد كل شهر. موديلات أقوى، وبيعدّل على الصورة المرجعية.",
-    quality: [["", "تلقائي"], ["low", "منخفضة (بتوفّر رصيد)"], ["medium", "متوسطة"], ["high", "عالية"]],
+    hint: t("مجاني بحساب Puter، ورصيدك المجاني بيتجدد كل شهر. موديلات أقوى، وبيعدّل على الصورة المرجعية."),
+    quality: [["", t("تلقائي")], ["low", t("منخفضة (بتوفّر رصيد)")], ["medium", t("متوسطة")], ["high", t("عالية")]],
     refs: true, seed: false, enhance: false
   }
 };
@@ -356,12 +388,12 @@ function b64ToBlob(b64, type = "image/png") { const bin = atob(b64); const a = n
 function blobToB64(blob) { return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(",")[1]); r.onerror = rej; r.readAsDataURL(blob); }); }
 function fileName(rec, i) { const p = (rec.prompt || "image").replace(/[\\/:*?"<>|\n]+/g, " ").trim().slice(0, 40) || "image"; return `GraphicWO_${p}_${i ?? ""}${Date.now() % 100000}.${(rec.blob.type.split("/")[1] || "png").replace("jpeg", "jpg")}`; }
 function download(rec) {
-  if (!rec.blob) { const a = document.createElement("a"); a.href = rec.src; a.target = "_blank"; a.rel = "noopener"; document.body.appendChild(a); a.click(); a.remove(); toast("انفتحت الصورة — كبسة يمين ← حفظ الصورة"); return; }
+  if (!rec.blob) { const a = document.createElement("a"); a.href = rec.src; a.target = "_blank"; a.rel = "noopener"; document.body.appendChild(a); a.click(); a.remove(); toast(t("انفتحت الصورة — كبسة يمين ← حفظ الصورة")); return; }
   const url = URL.createObjectURL(rec.blob); const a = document.createElement("a");
   a.href = url; a.download = fileName(rec); document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 4000);
 }
-async function copyText(t) { try { await navigator.clipboard.writeText(t); toast("تم النسخ 📋"); } catch { toast("ما قدرت انسخ"); } }
+async function copyText(t) { try { await navigator.clipboard.writeText(t); toast(t("تم النسخ 📋")); } catch { toast(t("ما قدرت انسخ")); } }
 
 // ---------------- IndexedDB للمعرض
 const DB = {
@@ -389,13 +421,13 @@ function renderEngines() {
   if (E.quality) { $("#quality").innerHTML = E.quality.map(([v, t]) => `<option value="${v}">${t}</option>`).join(""); $("#quality").value = S.quality[S.engine] || E.quality[0][0]; }
   $("#seedBox").style.display = E.seed ? "" : "none";
   $("#enhanceBox").style.display = E.enhance ? "" : "none";
-  $("#refHint").textContent = E.refs ? "الصورة بتنبعت مع البرومبت (مثلاً: «خلّي الخلفية بحر» أو «حوّلها لأنمي»)." :
-    "الصورة المرجعية بتشتغل مع محرك Puter.";
+  $("#refHint").textContent = E.refs ? t("الصورة بتنبعت مع البرومبت (مثلاً: «خلّي الخلفية بحر» أو «حوّلها لأنمي»).") :
+    t("الصورة المرجعية بتشتغل مع محرك Puter.");
 }
 function renderRatios() {
   $("#ratios").innerHTML = RATIOS.map(([r, w, h]) => { const k = 22 / Math.max(w, h); return `<div class="ratio ${r === S.ratio ? "on" : ""}" data-r="${r}"><i style="width:${w * k}px;height:${h * k}px"></i>${r}</div>`; }).join("");
 }
-function renderStyles() { $("#styles").innerHTML = STYLES.map(([n]) => `<span class="chip ${n === S.style ? "on" : ""}" data-s="${esc(n)}">${esc(n)}</span>`).join(""); }
+function renderStyles() { $("#styles").innerHTML = STYLES.map(([n]) => `<span class="chip ${n === S.style ? "on" : ""}" data-s="${esc(n)}">${esc(t(n))}</span>`).join(""); }
 function renderCount() { $$("#count button").forEach(b => b.classList.toggle("on", +b.dataset.n === S.n)); }
 function renderRefs() {
   $("#refs").innerHTML = S.refs.map((r, i) => `<div class="r"><img src="${r.url}"><button class="x" data-i="${i}">✕</button></div>`).join("");
@@ -421,7 +453,7 @@ function waitWithCountdown(secs, signal) {
   return new Promise((ok, no) => {
     S.waitUntil = Date.now() + secs * 1000;
     const h = setTimeout(() => { S.waitUntil = 0; ok(); }, secs * 1000);
-    signal?.addEventListener("abort", () => { clearTimeout(h); S.waitUntil = 0; no(Object.assign(new Error("انلغى"), {name: "AbortError"})); });
+    signal?.addEventListener("abort", () => { clearTimeout(h); S.waitUntil = 0; no(Object.assign(new Error(t("انلغى")), {name: "AbortError"})); });
   });
 }
 async function loadPollModels() {
@@ -429,7 +461,7 @@ async function loadPollModels() {
     const r = await fetch("https://image.pollinations.ai/models");
     const list = await r.json();
     if (Array.isArray(list) && list.length) {
-      ENGINES.pollinations.models = list.map(m => typeof m === "string" ? m : m.name).filter(Boolean).map(m => [m, m.charAt(0).toUpperCase() + m.slice(1) + " — مجاني"]);
+      ENGINES.pollinations.models = list.map(m => typeof m === "string" ? m : m.name).filter(Boolean).map(m => [m, m.charAt(0).toUpperCase() + m.slice(1) + " — " + t("مجاني")]);
       if (S.engine === "pollinations") renderEngines();
     }
   } catch {}
@@ -452,19 +484,19 @@ async function genPollinations(prompt, model, i, signal) {
         const txt = await r.text().catch(() => "");
         const m = txt.match(/Retry after (\d+)\s*s/i) || txt.match(/every (\d+) seconds/i);
         const secs = Math.min(70, Math.max(3, m ? +m[1] + 1 : 45));
-        lastErr = new Error("Pollinations مشغول هلق، جرّب بعد دقيقة أو استخدم Puter.");
+        lastErr = new Error(t("Pollinations مشغول هلق، جرّب بعد دقيقة أو استخدم Puter."));
         await waitWithCountdown(secs, signal);
         continue;
       }
-      if (!r.ok) throw new Error(`Pollinations: خطأ ${r.status} ${(await r.text().catch(() => "")).slice(0, 160)}`);
+      if (!r.ok) throw new Error(`Pollinations: ${t("خطأ")} ${r.status} ${(await r.text().catch(() => "")).slice(0, 160)}`);
       const blob = await r.blob();
-      if (!blob.type.startsWith("image/")) throw new Error("Pollinations رجّع شي مو صورة. جرّب موديل تاني.");
+      if (!blob.type.startsWith("image/")) throw new Error(t("Pollinations رجّع شي مو صورة. جرّب موديل تاني."));
       return {blob, seed};
     } catch (e) {
       if (e.name === "AbortError") throw e;
       lastErr = e;
       if (e instanceof TypeError && !key) {  // المتصفح منع القراءة: نعرض الصورة من رابطها مباشرة
-        await new Promise((ok, no) => { const im = new Image(); im.onload = ok; im.onerror = () => no(new Error("ما قدرت حمّل الصورة من Pollinations")); im.src = url; });
+        await new Promise((ok, no) => { const im = new Image(); im.onload = ok; im.onerror = () => no(new Error(t("ما قدرت حمّل الصورة من Pollinations"))); im.src = url; });
         return {src: url, seed};
       }
     }
@@ -478,8 +510,8 @@ async function renderPuter() {
   const ok = puterOK(), signed = puterSigned();
   let name = "";
   if (signed) { try { name = (await puter.auth.getUser())?.username || ""; } catch {} }
-  const txt = !ok ? "⚠ ما قدر يحمّل Puter — تأكد من النت" : signed ? `✅ مسجّل دخول${name ? " كـ " + name : ""}` : "لازم تسجّل دخول بحساب Puter المجاني (مرة وحدة)";
-  const btn = !ok ? "" : signed ? "تسجيل خروج" : "🔑 تسجيل دخول / حساب جديد";
+  const txt = !ok ? t("⚠ ما قدر يحمّل Puter — تأكد من النت") : signed ? t("✅ مسجّل دخول") + (name ? " — " + name : "") : t("لازم تسجّل دخول بحساب Puter المجاني (مرة وحدة)");
+  const btn = !ok ? "" : signed ? t("تسجيل خروج") : t("🔑 تسجيل دخول / حساب جديد");
   for (const [s, b] of [["#puterStatus", "#btnPuter"], ["#puterStatus2", "#btnPuter2"]]) {
     $(s).textContent = txt; $(b).textContent = btn; $(b).style.display = btn ? "" : "none";
   }
@@ -487,34 +519,34 @@ async function renderPuter() {
 async function puterAuthClick() {
   if (!puterOK()) return;
   try {
-    if (puterSigned()) { puter.auth.signOut(); toast("سجّلت خروج"); }
-    else { await puter.auth.signIn(); toast("أهلا وسهلا ✅"); }
-  } catch (e) { toast("ما تم تسجيل الدخول"); }
+    if (puterSigned()) { puter.auth.signOut(); toast(t("سجّلت خروج")); }
+    else { await puter.auth.signIn(); toast(t("أهلا وسهلا ✅")); }
+  } catch (e) { toast(t("ما تم تسجيل الدخول")); }
   renderPuter();
 }
 
 async function imgElToBlob(el) {
   const src = el?.src || String(el || "");
-  if (!src) throw new Error("Puter ما رجّع صورة");
+  if (!src) throw new Error(t("Puter ما رجّع صورة"));
   if (src.startsWith("data:")) { const [h, d] = src.split(","); return {blob: b64ToBlob(d, (h.match(/data:([^;]+)/) || [])[1] || "image/png")}; }
   try { const r = await fetch(src); if (r.ok) return {blob: await r.blob()}; } catch {}
   return {src};
 }
 
 async function genPuter(prompt, model, signal) {
-  if (!puterOK()) throw new Error("ما قدر يحمّل Puter. تأكد من النت وحدّث الصفحة.");
+  if (!puterOK()) throw new Error(t("ما قدر يحمّل Puter. تأكد من النت وحدّث الصفحة."));
   const opts = {model, aspect_ratio: S.ratio};
   const q = $("#quality").value; if (q) opts.quality = q;
   if (S.refs.length) { const f = S.refs[0].file; opts.input_image = await blobToB64(f); opts.input_image_mime_type = f.type || "image/png"; }
   const run = puter.ai.txt2img(prompt, opts);
-  const aborted = new Promise((_, no) => signal.addEventListener("abort", () => no(Object.assign(new Error("انلغى"), {name: "AbortError"}))));
+  const aborted = new Promise((_, no) => signal.addEventListener("abort", () => no(Object.assign(new Error(t("انلغى")), {name: "AbortError"}))));
   let el;
   try { el = await Promise.race([run, aborted]); }
   catch (e) {
     if (e.name === "AbortError") throw e;
     const m = (e?.error?.message || e?.message || JSON.stringify(e || {})).toString();
-    if (/insufficient|402|funds|credit|allowance/i.test(m)) throw new Error("خلص رصيد Puter المجاني لهالشهر. استخدم Pollinations (مجاني بدون حدود) لحد ما يتجدد.");
-    if (/auth|sign|401|token/i.test(m)) throw new Error("لازم تسجّل دخول بحساب Puter أولاً (اكبس «تسجيل دخول»).");
+    if (/insufficient|402|funds|credit|allowance/i.test(m)) throw new Error(t("خلص رصيد Puter المجاني لهالشهر. استخدم Pollinations (مجاني بدون حساب) لحد ما يتجدد."));
+    if (/auth|sign|401|token/i.test(m)) throw new Error(t("لازم تسجّل دخول بحساب Puter أولاً (اكبس «تسجيل دخول»)."));
     throw new Error("Puter: " + m.slice(0, 200));
   }
   return imgElToBlob(el);
@@ -524,24 +556,24 @@ async function genPuter(prompt, model, signal) {
 async function generate() {
   if (S.busy) { S.abort?.abort(); return; }
   const raw = $("#prompt").value.trim();
-  if (!raw) { $("#prompt").focus(); toast("اكتب وصف الصورة أولاً ✍"); return; }
+  if (!raw) { $("#prompt").focus(); toast(t("اكتب وصف الصورة أولاً ✍")); return; }
   if (S.engine === "puter" && puterOK() && !puterSigned()) {
-    try { await puter.auth.signIn(); } catch { toast("لازم تسجّل دخول بحساب Puter المجاني، أو استخدم Pollinations"); return; }
+    try { await puter.auth.signIn(); } catch { toast(t("لازم تسجّل دخول بحساب Puter المجاني، أو استخدم Pollinations")); return; }
     renderPuter();
   }
   const prompt = fullPrompt();
   const model = $("#model").value;
   const n = S.n;
   S.busy = true; S.abort = new AbortController();
-  const btn = $("#btnGo"); btn.textContent = "⏹ إيقاف"; btn.classList.add("stop");
+  const btn = $("#btnGo"); btn.textContent = t("⏹ إيقاف"); btn.classList.add("stop");
   const [rw, rh] = RATIOS.find(r => r[0] === S.ratio).slice(1);
   const res = $("#results");
   res.innerHTML = Array.from({length: n}, (_, i) => `<div class="ph" id="ph${i}" style="--ar:${rw}/${rh}">⏳ ${i + 1}</div>`).join("");
   if (window.innerWidth <= 980) { $("#prompt").blur(); setTimeout(() => $("#status").closest(".main").scrollIntoView({behavior: "smooth", block: "start"}), 60); }
   const t0 = Date.now();
   const tick = setInterval(() => {
-    if (S.waitUntil) status(`⏳ Pollinations المجاني بيسمح بصورة كل 45 ثانية — باقي ${Math.max(0, Math.ceil((S.waitUntil - Date.now()) / 1000))} ثانية وبكمّل لحالي (أو استخدم Puter لصور فورية)`);
-    else status(`عم ينعمل ${n > 1 ? n + " صور" : "الصورة"} بـ ${$("#model").selectedOptions[0].text.split("—")[0].trim()}... ${Math.round((Date.now() - t0) / 1000)} ثانية`);
+    if (S.waitUntil) status(t("⏳ Pollinations المجاني بيسمح بصورة كل 45 ثانية — باقي {s} ثانية وبكمّل لحالي (أو استخدم Puter لصور فورية)", {s: Math.max(0, Math.ceil((S.waitUntil - Date.now()) / 1000))}));
+    else status(t(n > 1 ? t("عم ينعملو {n} صور بـ {m}... {s} ثانية") : t("عم تنعمل الصورة بـ {m}... {s} ثانية"), {n, m: $("#model").selectedOptions[0].text.split("—")[0].trim(), s: Math.round((Date.now() - t0) / 1000)}));
   }, 500);
   let done = 0, errors = [];
   const put = async (i, out) => {
@@ -551,7 +583,7 @@ async function generate() {
     const ph = $("#ph" + i); if (ph) ph.replaceWith(imgCard(rec, true));
     done++; renderGallery();
   };
-  const fail = (i, e) => { if (e.name === "AbortError") e = new Error("انلغى"); errors.push(e.message); const ph = $("#ph" + i); if (ph) { ph.style.animation = "none"; ph.textContent = "⚠ " + e.message.slice(0, 120); ph.style.padding = "12px"; ph.style.textAlign = "center"; } };
+  const fail = (i, e) => { if (e.name === "AbortError") e = new Error(t("انلغى")); errors.push(e.message); const ph = $("#ph" + i); if (ph) { ph.style.animation = "none"; ph.textContent = "⚠ " + e.message.slice(0, 120); ph.style.padding = "12px"; ph.style.textAlign = "center"; } };
   try {
     if (S.engine === "pollinations") {
       for (let i = 0; i < n; i++) { try { await put(i, await genPollinations(prompt, model, i, S.abort.signal)); } catch (e) { fail(i, e); if (e.name === "AbortError") break; } }
@@ -560,10 +592,10 @@ async function generate() {
     }
   } finally {
     clearInterval(tick);
-    S.busy = false; btn.textContent = "✨ أنشئ الصورة"; btn.classList.remove("stop");
+    S.busy = false; btn.textContent = t("✨ أنشئ الصورة"); btn.classList.remove("stop");
     const secs = Math.round((Date.now() - t0) / 1000);
     if (errors.length && !done) status(errors[0], true);
-    else { status(""); if (done) toast(`✅ ${done} صورة جاهزة بـ ${secs} ثانية`); }
+    else { status(""); if (done) toast(t("✅ {n} صورة جاهزة بـ {s} ثانية", {n: done, s: secs})); }
   }
 }
 
@@ -571,7 +603,7 @@ function imgCard(rec, big) {
   const url = rec.blob ? URL.createObjectURL(rec.blob) : rec.src;
   const d = document.createElement("div"); d.className = "img";
   d.innerHTML = `<img src="${url}" alt="">${big ? "" : `<span class="tag">${esc(rec.engine)}</span>`}
-    <div class="bar"><button data-a="dl">⬇ تنزيل</button>${big ? `<button data-a="var">🔁 نسخة تانية</button><button data-a="ref">📎 عدّل عليها</button>` : `<button data-a="reuse">↺ استخدم</button><button data-a="del">🗑</button>`}</div>`;
+    <div class="bar"><button data-a="dl">${t("⬇ تنزيل")}</button>${big ? `<button data-a="var">${t("🔁 نسخة تانية")}</button><button data-a="ref">${t("📎 عدّل عليها")}</button>` : `<button data-a="reuse">${t("↺ استخدم")}</button><button data-a="del">🗑</button>`}</div>`;
   d.onclick = e => {
     const a = e.target.closest("button")?.dataset.a;
     if (!a) return openLB(rec, url);
@@ -580,19 +612,19 @@ function imgCard(rec, big) {
     if (a === "del") { DB.del(rec.id); const k = memGallery.indexOf(rec); if (k >= 0) memGallery.splice(k, 1); renderGallery(); }
     if (a === "reuse") reuse(rec);
     if (a === "var") { reuse(rec); $("#seed").value = ""; generate(); }
-    if (a === "ref") rec.blob ? addRefBlob(rec.blob) : toast("نزّل الصورة وارجع ضيفها كمرجع");
+    if (a === "ref") rec.blob ? addRefBlob(rec.blob) : toast(t("نزّل الصورة وارجع ضيفها كمرجع"));
   };
   return d;
 }
 function reuse(rec) {
   $("#prompt").value = rec.prompt; S.engine = rec.engine; S.models[rec.engine] = rec.model; S.ratio = rec.ratio; S.style = rec.style || "بدون";
-  renderEngines(); renderRatios(); renderStyles(); updateCount(); save(); window.scrollTo({top: 0, behavior: "smooth"}); toast("رجّعت إعدادات الصورة ↺");
+  renderEngines(); renderRatios(); renderStyles(); updateCount(); save(); window.scrollTo({top: 0, behavior: "smooth"}); toast(t("رجّعت إعدادات الصورة ↺"));
 }
 function openLB(rec, url) {
   $("#lbImg").src = url;
-  $("#lbMeta").innerHTML = `<b>${esc(rec.prompt)}</b><br><span style="color:#999">${esc(rec.engine)} • ${esc(rec.model)} • ${esc(rec.ratio)}${rec.style && rec.style !== "بدون" ? " • " + esc(rec.style) : ""}${rec.seed != null ? " • seed " + rec.seed : ""} • ${new Date(rec.created).toLocaleString("ar")}</span>`;
-  const bar = $("#lbBar"); bar.innerHTML = `<button data-a="dl">⬇ تنزيل</button><button data-a="cp">📋 نسخ البرومبت</button><button data-a="reuse">↺ استخدم الإعدادات</button><button data-a="ref">📎 عدّل عليها</button>`;
-  bar.onclick = e => { const a = e.target.dataset.a; if (a === "dl") download(rec); if (a === "cp") copyText(rec.prompt); if (a === "reuse") { reuse(rec); closeLB(); } if (a === "ref") { rec.blob ? addRefBlob(rec.blob) : toast("نزّل الصورة وارجع ضيفها كمرجع"); closeLB(); } };
+  $("#lbMeta").innerHTML = `<b>${esc(rec.prompt)}</b><br><span style="color:#999">${esc(rec.engine)} • ${esc(rec.model)} • ${esc(rec.ratio)}${rec.style && rec.style !== "بدون" ? " • " + esc(t(rec.style)) : ""}${rec.seed != null ? " • seed " + rec.seed : ""} • ${new Date(rec.created).toLocaleString(LANG)}</span>`;
+  const bar = $("#lbBar"); bar.innerHTML = `<button data-a="dl">${t("⬇ تنزيل")}</button><button data-a="cp">${t("📋 نسخ البرومبت")}</button><button data-a="reuse">${t("↺ استخدم الإعدادات")}</button><button data-a="ref">${t("📎 عدّل عليها")}</button>`;
+  bar.onclick = e => { const a = e.target.dataset.a; if (a === "dl") download(rec); if (a === "cp") copyText(rec.prompt); if (a === "reuse") { reuse(rec); closeLB(); } if (a === "ref") { rec.blob ? addRefBlob(rec.blob) : toast(t("نزّل الصورة وارجع ضيفها كمرجع")); closeLB(); } };
   $("#lb").classList.add("show");
 }
 function closeLB() { $("#lb").classList.remove("show"); }
@@ -601,7 +633,7 @@ function renderGallery() {
   const q = $("#galSearch").value.trim().toLowerCase();
   const items = memGallery.filter(r => !q || r.prompt.toLowerCase().includes(q));
   const g = $("#gallery"); g.innerHTML = "";
-  if (!items.length) g.innerHTML = `<div class="empty" style="grid-column:1/-1">${memGallery.length ? "ما في نتائج" : "الصور اللي بتعملها بتنحفظ هون تلقائياً"}</div>`;
+  if (!items.length) g.innerHTML = `<div class="empty" style="grid-column:1/-1">${memGallery.length ? t("ما في نتائج") : t("الصور اللي بتعملها بتنحفظ هون تلقائياً")}</div>`;
   items.slice(0, 300).forEach(r => g.appendChild(imgCard(r, false)));
   $("#galCount").textContent = memGallery.length ? `(${memGallery.length})` : "";
 }
@@ -611,14 +643,14 @@ function addRefFiles(files) {
   const f = [...files].find(x => x.type.startsWith("image/"));
   if (!f) return;
   S.refs = [{file: f, url: URL.createObjectURL(f)}];
-  if (S.engine === "pollinations") { S.engine = "puter"; renderEngines(); save(); toast("حوّلتك لمحرك Puter لأنه هو اللي بيعدّل على الصور 📎"); }
+  if (S.engine === "pollinations") { S.engine = "puter"; renderEngines(); save(); toast(t("حوّلتك لمحرك Puter لأنه هو اللي بيعدّل على الصور 📎")); }
   renderRefs();
 }
-function addRefBlob(blob) { addRefFiles([new File([blob], "ref.png", {type: blob.type || "image/png"})]); toast("انضافت كصورة مرجعية 📎 — اكتب التعديل اللي بدك ياه"); $("#prompt").focus(); }
+function addRefBlob(blob) { addRefFiles([new File([blob], "ref.png", {type: blob.type || "image/png"})]); toast(t("انضافت كصورة مرجعية 📎 — اكتب التعديل اللي بدك ياه")); $("#prompt").focus(); }
 
 // ---------------- حفظ
 function save() { S.models[S.engine] = $("#model").value; if (ENGINES[S.engine].quality) S.quality[S.engine] = $("#quality").value; ["engine", "models", "ratio", "n", "style", "quality", "theme"].forEach(k => store.set(k, S[k])); store.set("draft", $("#prompt").value); }
-function updateCount() { $("#pcount").textContent = $("#prompt").value.length + " حرف"; }
+function updateCount() { $("#pcount").textContent = t("{n} حرف", {n: $("#prompt").value.length}); }
 
 // ---------------- الأحداث
 $("#engines").onclick = e => { const el = e.target.closest(".engine"); if (!el) return; save(); S.engine = el.dataset.e; renderEngines(); save(); };
@@ -628,7 +660,7 @@ $("#styles").onclick = e => { const el = e.target.closest(".chip"); if (!el) ret
 $("#count").onclick = e => { const b = e.target.closest("button"); if (!b) return; S.n = +b.dataset.n; renderCount(); save(); };
 $("#prompt").oninput = () => { updateCount(); store.set("draft", $("#prompt").value); };
 $("#prompt").onkeydown = e => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) generate(); };
-$("#btnRandom").onclick = () => { $("#prompt").value = IDEAS[Math.floor(Math.random() * IDEAS.length)]; updateCount(); };
+$("#btnRandom").onclick = () => { const L = IDEAS_I18N[LANG] || IDEAS; $("#prompt").value = L[Math.floor(Math.random() * L.length)]; updateCount(); };
 $("#btnClear").onclick = () => { $("#prompt").value = ""; updateCount(); $("#prompt").focus(); };
 $("#btnSeed").onclick = () => { $("#seed").value = Math.floor(Math.random() * 1e6); };
 $("#btnGo").onclick = generate;
@@ -637,17 +669,20 @@ $("#refInput").onchange = e => { addRefFiles(e.target.files); e.target.value = "
 ["dragover", "dragenter"].forEach(ev => $("#drop").addEventListener(ev, e => { e.preventDefault(); $("#drop").classList.add("over"); }));
 ["dragleave", "drop"].forEach(ev => $("#drop").addEventListener(ev, e => { e.preventDefault(); $("#drop").classList.remove("over"); }));
 $("#drop").addEventListener("drop", e => addRefFiles(e.dataTransfer.files));
-document.addEventListener("paste", e => { const fs = [...(e.clipboardData?.files || [])].filter(f => f.type.startsWith("image/")); if (fs.length) { addRefFiles(fs); toast("انلصقت الصورة كمرجع 📎"); } });
+document.addEventListener("paste", e => { const fs = [...(e.clipboardData?.files || [])].filter(f => f.type.startsWith("image/")); if (fs.length) { addRefFiles(fs); toast(t("انلصقت الصورة كمرجع 📎")); } });
 $("#refs").onclick = e => { const b = e.target.closest(".x"); if (!b) return; S.refs.splice(+b.dataset.i, 1); renderRefs(); };
 $("#lbClose").onclick = closeLB; $("#lb").onclick = e => { if (e.target.id === "lb") closeLB(); };
 document.addEventListener("keydown", e => { if (e.key === "Escape") { closeLB(); $("#settings").classList.remove("show"); } });
 $("#galSearch").oninput = renderGallery;
-$("#btnClearGal").onclick = async () => { if (!memGallery.length) return; const b = $("#btnClearGal"); if (b.dataset.sure) { await DB.clear(); memGallery.length = 0; renderGallery(); b.textContent = "🗑 مسح المعرض"; delete b.dataset.sure; toast("انمسح المعرض"); } else { b.dataset.sure = 1; b.textContent = "⚠ متأكد؟ اكبس كمان مرة"; setTimeout(() => { b.textContent = "🗑 مسح المعرض"; delete b.dataset.sure; }, 3500); } };
+$("#btnClearGal").onclick = async () => { if (!memGallery.length) return; const b = $("#btnClearGal"); if (b.dataset.sure) { await DB.clear(); memGallery.length = 0; renderGallery(); b.textContent = t("🗑 مسح المعرض"); delete b.dataset.sure; toast(t("انمسح المعرض")); } else { b.dataset.sure = 1; b.textContent = t("⚠ متأكد؟ اكبس كمان مرة"); setTimeout(() => { b.textContent = t("🗑 مسح المعرض"); delete b.dataset.sure; }, 3500); } };
+$("#langSel").value = LANG; $("#langSel2").value = LANG;
+$("#langSel").onchange = e => setLang(e.target.value);
+$("#langSel2").onchange = e => setLang(e.target.value);
 $("#btnSettings").onclick = () => { applyTheme(); renderPuter(); $("#settings").classList.add("show"); };
 $("#btnPuter").onclick = puterAuthClick; $("#btnPuter2").onclick = puterAuthClick;
 $("#settings").onclick = e => { if (e.target.id === "settings") $("#settings").classList.remove("show"); };
 $("#themes").onclick = e => { const t = e.target.closest(".th"); if (!t) return; S.theme = t.dataset.t; applyTheme(); };
-$("#btnSaveSettings").onclick = () => { save(); $("#settings").classList.remove("show"); toast("انحفظت الإعدادات 💾"); };
+$("#btnSaveSettings").onclick = () => { save(); $("#settings").classList.remove("show"); toast(t("انحفظت الإعدادات 💾")); };
 
 // ---------------- تشغيل
 (async () => {

@@ -104,7 +104,7 @@ async function imageIdea(env, form) {
 
 // ---- 💬 شات مجاني (Cloudflare Workers AI)
 const CHAT_SYSTEM = `You are "GraphicWO AI", a friendly, smart and helpful assistant inside the free GraphicWO AI Studio app.
-- Always answer in the same language and dialect as the user (if the user writes Arabic, answer in Levantine/Syrian Arabic).
+- Always answer in the same language as the user. If the user writes Arabic, answer in clear, simple Arabic with a light Syrian/Levantine touch (never Egyptian words), and never mix in other scripts or languages.
 - Be accurate and helpful; use short paragraphs and simple lists when useful.
 - You CAN create images. When the user asks you to draw/create/generate/design an image, picture, logo, poster, wallpaper etc., reply with ONE short sentence and then, on its own line, exactly:
 [[IMAGE: <detailed English image prompt with subject, style, lighting, colors; NO text in the image> || <exact text the user wants written on the image, in its original language, or empty>]]
@@ -122,7 +122,7 @@ async function chat(env, body) {
   }
   if (messages.length < 2) throw Object.assign(new Error("no_message"), {status: 400});
   let lastErr;
-  const CHAT_MODELS = ["@cf/google/gemma-3-12b-it", "@cf/qwen/qwen3-30b-a3b-fp8", "@cf/mistralai/mistral-small-3.1-24b-instruct", "@cf/meta/llama-3.3-70b-instruct-fp8-fast", "@cf/meta/llama-3.1-8b-instruct-fast"];
+  const CHAT_MODELS = ["@cf/mistralai/mistral-small-3.1-24b-instruct", "@cf/meta/llama-3.3-70b-instruct-fp8-fast", "@cf/meta/llama-3.1-8b-instruct-fast"];
   const order = CHAT_MODELS.includes(body.model) ? [body.model, ...CHAT_MODELS.filter(m => m !== body.model)] : CHAT_MODELS;
   for (const model of order) {
     try {

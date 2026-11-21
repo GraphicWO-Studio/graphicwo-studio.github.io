@@ -102,6 +102,36 @@ async function imageIdea(env, form) {
   return String(r.response || "").trim().replace(/^["'«]+|["'»]+$/g, "");
 }
 
+// ---- 💬 شات مجاني (Cloudflare Workers AI)
+const CHAT_SYSTEM = `You are "GraphicWO AI", a friendly, smart and helpful assistant inside the free GraphicWO AI Studio app.
+- Always answer in the same language and dialect as the user (if the user writes Arabic, answer in Levantine/Syrian Arabic).
+- Be accurate and helpful; use short paragraphs and simple lists when useful.
+- You CAN create images. When the user asks you to draw/create/generate/design an image, picture, logo, poster, wallpaper etc., reply with ONE short sentence and then, on its own line, exactly:
+[[IMAGE: <detailed English image prompt with subject, style, lighting, colors; NO text in the image> || <exact text the user wants written on the image, in its original language, or empty>]]
+- When the user asks for a summary image / infographic / "صورة تلخيص" about a topic, reply with ONE short sentence and then, on its own line, exactly:
+[[INFO: <short title in the user's language> || <point 1> || <point 2> || <point 3> || <point 4> || <point 5> || <English prompt for a matching decorative background, no text>]]
+  Points must be short (max 12 words each), factual, in the user's language.
+- Never produce sexual content, content about minors, hateful content, or real-person deepfakes.`;
+
+async function chat(env, body) {
+  const msgs = Array.isArray(body.messages) ? body.messages.slice(-16) : [];
+  const messages = [{role: "system", content: CHAT_SYSTEM}];
+  for (const m of msgs) {
+    if (!m || !["user", "assistant"].includes(m.role)) continue;
+    messages.push({role: m.role, content: clean(m.content, 4000)});
+  }
+  if (messages.length < 2) throw Object.assign(new Error("no_message"), {status: 400});
+  let lastErr;
+  for (const model of ["@cf/meta/llama-3.3-70b-instruct-fp8-fast", "@cf/openai/gpt-oss-20b", "@cf/meta/llama-3.1-8b-instruct-fast"]) {
+    try {
+      const r = await env.AI.run(model, {messages, max_tokens: 900, temperature: 0.7});
+      const text = r?.response ?? r?.choices?.[0]?.message?.content ?? (typeof r === "string" ? r : "");
+      if (text && String(text).trim()) return String(text).trim();
+    } catch (e) { lastErr = e; }
+  }
+  throw lastErr || new Error("no_reply");
+}
+
 export default {
   async fetch(req, env) {
     const allowed = String(env.ALLOWED_ORIGINS || "").split(",").map(s => s.trim()).filter(Boolean);
@@ -115,6 +145,17 @@ export default {
     if (req.method === "OPTIONS") return new Response(null, {headers: cors});
     const url = new URL(req.url);
     if (req.method === "GET" && url.pathname === "/") return json({ok: true, service: "graphicwo-gateway"}, 200, cors);
+    if (req.method === "POST" && url.pathname === "/chat") {
+      if (!allowed.includes(origin)) return json({error: "forbidden"}, 403, cors);
+      if (!env.AI) return json({error: "not_configured"}, 503, cors);
+      if (env.LIMITER) {
+        const {success} = await env.LIMITER.limit({key: "chat:" + (req.headers.get("CF-Connecting-IP") || "anon")});
+        if (!success) return json({error: "rate_limited"}, 429, cors);
+      }
+      let body; try { body = await req.json(); } catch { return json({error: "bad_request"}, 400, cors); }
+      try { return json({reply: await chat(env, body)}, 200, cors); }
+      catch (e) { const m = String(e && e.message || e); return json({error: /neuron|quota|limit|4006|daily/i.test(m) ? "daily_limit" : "failed", detail: m.slice(0, 160)}, e.status || 502, cors); }
+    }
     if (req.method === "POST" && url.pathname === "/idea") {
       if (!allowed.includes(origin)) return json({error: "forbidden"}, 403, cors);
       if (!env.AI) return json({error: "not_configured"}, 503, cors);

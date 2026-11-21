@@ -1,0 +1,2 @@
+Fonts from Google Fonts (github.com/google/fonts), licensed under the SIL Open Font License 1.1.
+Cairo, Lalezar, Reem Kufi, Amiri, Aref Ruqaa, Bebas Neue, Anton.

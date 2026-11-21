@@ -284,8 +284,8 @@ const store = {
 // ---------------- إعدادات المحركات
 const ENGINES = {
   pollinations: {
-    models: [["flux", "Flux — متوازن (افتراضي)"], ["zimage", "Z-Image — واقعي"], ["turbo", "Turbo — الأسرع"]],
-    hint: "مجاني بالكامل بدون حساب. إذا صار ضغط، بيستنى شوي وبيرجع يجرّب لحاله.",
+    models: [["sana", "Sana — مجاني"]],
+    hint: "مجاني بدون حساب: صورة وحدة كل 45 ثانية تقريباً (التطبيق بيستنى لحاله). لصور أسرع وأقوى استخدم Puter.",
     quality: null, refs: false, seed: true, enhance: true
   },
   puter: {
@@ -344,6 +344,7 @@ const S = {
   theme: store.get("theme", "blue"),
   refs: [],
   busy: false,
+  waitUntil: 0,
   abort: null
 };
 
@@ -416,6 +417,24 @@ function fullPrompt() {
 }
 
 // ---------------- المحركات
+function waitWithCountdown(secs, signal) {
+  return new Promise((ok, no) => {
+    S.waitUntil = Date.now() + secs * 1000;
+    const h = setTimeout(() => { S.waitUntil = 0; ok(); }, secs * 1000);
+    signal?.addEventListener("abort", () => { clearTimeout(h); S.waitUntil = 0; no(Object.assign(new Error("انلغى"), {name: "AbortError"})); });
+  });
+}
+async function loadPollModels() {
+  try {
+    const r = await fetch("https://image.pollinations.ai/models");
+    const list = await r.json();
+    if (Array.isArray(list) && list.length) {
+      ENGINES.pollinations.models = list.map(m => typeof m === "string" ? m : m.name).filter(Boolean).map(m => [m, m.charAt(0).toUpperCase() + m.slice(1) + " — مجاني"]);
+      if (S.engine === "pollinations") renderEngines();
+    }
+  } catch {}
+}
+
 async function genPollinations(prompt, model, i, signal) {
   const [w, h] = SIZES_POLL[S.ratio];
   const seedIn = $("#seed").value.trim();
@@ -426,10 +445,17 @@ async function genPollinations(prompt, model, i, signal) {
   const headers = {};
   const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?${q}`;
   let lastErr;
-  for (let attempt = 0; attempt < 3; attempt++) {
+  for (let attempt = 0; attempt < 6; attempt++) {
     try {
       const r = await fetch(url, {headers, signal});
-      if (r.status === 429) { lastErr = new Error("ضغط كبير على Pollinations، عم جرّب مرة تانية..."); status(lastErr.message); await new Promise(z => setTimeout(z, 4000 * (attempt + 1))); continue; }
+      if (r.status === 402 || r.status === 429) {
+        const txt = await r.text().catch(() => "");
+        const m = txt.match(/Retry after (\d+)\s*s/i) || txt.match(/every (\d+) seconds/i);
+        const secs = Math.min(70, Math.max(3, m ? +m[1] + 1 : 45));
+        lastErr = new Error("Pollinations مشغول هلق، جرّب بعد دقيقة أو استخدم Puter.");
+        await waitWithCountdown(secs, signal);
+        continue;
+      }
       if (!r.ok) throw new Error(`Pollinations: خطأ ${r.status} ${(await r.text().catch(() => "")).slice(0, 160)}`);
       const blob = await r.blob();
       if (!blob.type.startsWith("image/")) throw new Error("Pollinations رجّع شي مو صورة. جرّب موديل تاني.");
@@ -513,7 +539,10 @@ async function generate() {
   res.innerHTML = Array.from({length: n}, (_, i) => `<div class="ph" id="ph${i}" style="--ar:${rw}/${rh}">⏳ ${i + 1}</div>`).join("");
   if (window.innerWidth <= 980) { $("#prompt").blur(); setTimeout(() => $("#status").closest(".main").scrollIntoView({behavior: "smooth", block: "start"}), 60); }
   const t0 = Date.now();
-  const tick = setInterval(() => status(`عم ينعمل ${n > 1 ? n + " صور" : "الصورة"} بـ ${$("#model").selectedOptions[0].text.split("—")[0].trim()}... ${Math.round((Date.now() - t0) / 1000)} ثانية`), 500);
+  const tick = setInterval(() => {
+    if (S.waitUntil) status(`⏳ Pollinations المجاني بيسمح بصورة كل 45 ثانية — باقي ${Math.max(0, Math.ceil((S.waitUntil - Date.now()) / 1000))} ثانية وبكمّل لحالي (أو استخدم Puter لصور فورية)`);
+    else status(`عم ينعمل ${n > 1 ? n + " صور" : "الصورة"} بـ ${$("#model").selectedOptions[0].text.split("—")[0].trim()}... ${Math.round((Date.now() - t0) / 1000)} ثانية`);
+  }, 500);
   let done = 0, errors = [];
   const put = async (i, out) => {
     const rec = {id: Date.now() + "_" + i + "_" + Math.random().toString(36).slice(2, 6), blob: out.blob || null, src: out.src || null, prompt: raw, full: prompt,
@@ -624,6 +653,7 @@ $("#btnSaveSettings").onclick = () => { save(); $("#settings").classList.remove(
 (async () => {
   applyTheme(); renderEngines(); renderRatios(); renderStyles(); renderCount(); renderRefs();
   $("#prompt").value = store.get("draft", ""); updateCount();
+  loadPollModels();
   await DB.open();
   const all = await DB.all(); all.sort((a, b) => b.created - a.created); memGallery.push(...all); renderGallery();
 })();

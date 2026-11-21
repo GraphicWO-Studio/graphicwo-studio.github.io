@@ -17,7 +17,532 @@ from datetime import datetime
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 
-APP_NAME = "منظّم الملفات"
+# ------------------------------------------------------------------ اللغات (عربي / English / Français)
+
+def _detect_lang():
+    path = os.path.join(os.path.expanduser("~"), ".graphicwo_organizer_settings.json")
+    try:
+        with open(path, encoding="utf-8") as fh:
+            saved = json.load(fh)
+        if saved.get("lang") in ("ar", "en", "fr"):
+            return saved["lang"]
+        return "ar"  # مستخدم قديم قبل إضافة اللغات
+    except (OSError, ValueError):
+        pass
+    code = ""
+    try:
+        import locale
+        if sys.platform.startswith("win"):
+            import ctypes
+            code = locale.windows_locale.get(ctypes.windll.kernel32.GetUserDefaultUILanguage(), "")
+        else:
+            code = locale.getlocale()[0] or os.environ.get("LANG", "")
+    except Exception:  # noqa
+        pass
+    code = (code or "").lower()[:2]
+    return code if code in ("ar", "fr") else "en"
+
+
+LANG = _detect_lang()
+RTL = LANG == "ar"
+SR, SL = ("right", "left") if RTL else ("left", "right")   # جهة البداية / النهاية
+AE = "e" if RTL else "w"
+JR = "right" if RTL else "left"
+TR = {
+"en": {
+"\n\nفشل نقل {0} ملف:\n": "\n\nFailed to move {0} file(s):\n",
+"\n\nما انحذفوا ({0}):\n": "\n\nNot deleted ({0}):\n",
+"   |   المحدد: {0} ملف ({1})": "   |   Selected: {0} file(s) ({1})",
+"   الرقم يبدأ من:": "   Start number:",
+"  —  الجدول يعرض أول {0} فقط، لكن «نقل كل المعروض» يشمل الكل": "  —  the table shows the first {0} only, but “Move all shown” includes everything",
+"1 – 10 ميغا": "1 – 10 MB",
+"10 – 100 ميغا": "10 – 100 MB",
+"100 ميغا – 1 غيغا": "100 MB – 1 GB",
+"{0}   ←   {1} ملف": "{0}   ←   {1} file(s)",
+"{0}  ({1:,} بايت)": "{0}  ({1:,} bytes)",
+"{0}  •  الإصدار {1}": "{0}  •  version {1}",
+"{0} بايت": "{0} B",
+"{0} مجموعة  •  {1} صورة متشابهة  •  المحدد: {2} ({3})": "{0} group(s)  •  {1} similar images  •  selected: {2} ({3})",
+"{0} مجموعة  •  {1} نسخة زايدة  •  بتوفّر {2}": "{0} group(s)  •  {1} extra copies  •  saves {2}",
+"{date} بياخد تاريخ التصوير من الكاميرا للصور، وإلا تاريخ التعديل": "{date} uses the camera's capture date for photos, otherwise the modified date",
+"آخر 30 يوم": "Last 30 days",
+"آخر 7 أيام": "Last 7 days",
+"آخر تعديل": "Modified",
+"آخر سنة": "Last year",
+"أخرى": "Other",
+"أصغر من 1 ميغا": "Under 1 MB",
+"أقدم من سنة": "Older than a year",
+"أقصى عدد ملفات يُعرض بالجدول:": "Max files shown in the table:",
+"أكبر من 1 غيغا": "Over 1 GB",
+"أول حرف كبير": "Title Case",
+"إرجاع الأنواع للوضع الافتراضي؟": "Restore default types?",
+"إظهار لوحة المعاينة": "Show preview panel",
+"إعادة تسمية": "Rename",
+"إعادة تسمية {0} ملف ({1})": "Rename {0} file(s) ({1})",
+"إعادة تسمية {0} ملف؟\n(بتقدر تتراجع بعدين)": "Rename {0} file(s)?\n(You can undo later)",
+"إعادة تسمية جماعية": "Batch rename",
+"إعادة تسمية...": "Rename...",
+"إغلاق": "Close",
+"إلغاء": "Cancel",
+"اختار درجة التشابه واكبس «ابحث».": "Choose a similarity level and press “Search”.",
+"اختار ملف لتشوف معاينته": "Select a file to preview it",
+"اختار نوع من القائمة وعدّل لواحقه (افصل بينها بمسافة). الملفات اللي لاحقتها مو موجودة بتروح لـ «أخرى».": "Pick a type and edit its extensions (separated by spaces). Files with unlisted extensions go to “Other”.",
+"اختر المجلد": "Choose folder",
+"اختر المجلد الذي سيتم النقل إليه": "Choose the destination folder",
+"اختر مجلداً ثم اضغط «فحص».": "Choose a folder, then press “Scan”.",
+"اختر مجلداً صحيحاً أولاً.": "Choose a valid folder first.",
+"اسألني للتأكيد قبل النقل": "Ask for confirmation before moving",
+"استبدال:": "Replace:",
+"اسم الملف": "File name",
+"اسم النوع (هو اسم المجلد وقت التنظيم):": "Type name (used as folder name when organizing):",
+"اسم مجلد الملفات غير المصنفة:": "Folder name for unclassified files:",
+"افحص مجلداً أولاً.": "Scan a folder first.",
+"الأبعاد": "Dimensions",
+"الأحرف:": "Case:",
+"الألوان:": "Colors:",
+"الأنواع واللواحق": "Types & extensions",
+"الإعدادات": "Settings",
+"الاسم": "Name",
+"الاسم الجديد": "New name",
+"الاسم الحالي": "Current name",
+"الاسم_001": "name_001",
+"التاريخ": "Date",
+"التاريخ (الأقدم أولاً)": "Date (oldest first)",
+"التاريخ:": "Date:",
+"التراجع عن آخر عملية «{0}»؟\n{1} ملف بيرجعوا متل ما كانوا.\n(العملية من: {2})": "Undo the last “{0}”?\n{1} file(s) will be restored.\n(from: {2})",
+"الترتيب الحالي": "Current order",
+"الترقيم حسب:": "Number by:",
+"التصنيف": "Category",
+"الحجم": "Size",
+"الحجم الكلي": "Total size",
+"الحجم:": "Size:",
+"الخط «{0}» مو منزّل على الجهاز — رح يستخدم {1} لحد ما تنزّله أو تحطّه بمجلد fonts": "Font “{0}” isn't installed — using {1} until you install it or put it in the fonts folder",
+"الخط:": "Font:",
+"الصور المتشابهة": "Similar images",
+"العدد": "Count",
+"الكل": "All",
+"اللاحقة": "Extension",
+"اللواحق:": "Extensions:",
+"المجلد:": "Folder:",
+"المجلدات الجديدة تنعمل داخل:": "New folders are created in:",
+"المحددة": "selected",
+"المظهر والخط": "Appearance & font",
+"المعاينة": "Preview",
+"المعروض: {0}": "Showing: {0}",
+"المعروض: {0} ملف ({1})": "Showing: {0} file(s) ({1})",
+"المعروضة": "shown",
+"المعروضة بس": "Shown only",
+"المكان": "Location",
+"الملف": "File",
+"الملفات المعروضة حالياً فقط ({0})": "Only files currently shown ({0})",
+"الملفات المكررة": "Duplicate files",
+"الملفات:": "Files:",
+"النسبة": "Share",
+"النوع": "Type",
+"النوع / اللاحقة": "Type / extension",
+"الوقت": "Time",
+"اليوم": "Today",
+"انحذف {0} ملف لسلة المحذوفات 🗑": "{0} file(s) moved to the Recycle Bin 🗑",
+"بحث:": "Search:",
+"بدون لاحقة": "No extension",
+"بـ": "with",
+"تاريخ الإنشاء": "Created",
+"تاريخ التصوير/التعديل": "Photo/modified date",
+"تجاهل الملفات والمجلدات المخفية": "Ignore hidden files and folders",
+"تسمية": "Rename",
+"تطوير وتصميم: {0}": "Developed & designed by {0}",
+"تطوير: {0}": "by {0}",
+"تغيير": "Change",
+"تم إرجاع {0} ملف ✅": "{0} file(s) restored ✅",
+"تم تحديد {0} ملف": "{0} files selected",
+"تم نسخ مسار {0} ملف 📋": "Copied the path of {0} file(s) 📋",
+"تم نقل {0} ملف ✅": "{0} file(s) moved ✅",
+"تمت إعادة تسمية {0} ملف ✅": "{0} file(s) renamed ✅",
+"تنظيم تلقائي": "Auto organize",
+"تنفيذ": "Run",
+"تنفيذ ونقل {0} ملف": "Move {0} file(s)",
+"جارٍ البحث عن الملفات المتطابقة...": "Searching for identical files...",
+"جارٍ الفحص...": "Scanning...",
+"جارٍ الفحص... {0} ملف": "Scanning... {0} files",
+"جارٍ تحليل {0} صورة...": "Analyzing {0} images...",
+"جارٍ تحليل الصور... {0}/{1}": "Analyzing images... {0}/{1}",
+"جارٍ مقارنة الصور...": "Comparing images...",
+"جارٍ مقارنة المحتوى... {0}/{1}": "Comparing contents... {0}/{1}",
+"حدد الصور اللي بدك تنقلها أولاً.": "Select the images you want to move first.",
+"حدد الملفات اللي بدك تحذفها.": "Select the files you want to delete.",
+"حدد النسخ أولاً (أو اكبس «حدد النسخ الزايدة»).": "Select copies first (or press “Select extra copies”).",
+"حذف النوع «{0}»؟": "Delete type “{0}”?",
+"حسب الحجم  (صغير / متوسط / كبير / ضخم)": "By size  (small / medium / large / huge)",
+"حسب اللاحقة فقط  (JPG / PDF / MP4 ...)": "By extension only  (JPG / PDF / MP4 ...)",
+"حسب النوع بس  (صور / فيديو / مستندات ...)": "By type only  (Images / Video / Documents ...)",
+"حسب سنة وشهر التعديل  (2025/03 ...)": "By modified year & month  (2025/03 ...)",
+"حول": "About",
+"خانات:": "Digits:",
+"خيارات عامة": "General",
+"درجة التشابه:": "Similarity:",
+"رجوع للاسم": "Original name",
+"رحلة 001": "Trip 001",
+"رحلة {n}": "Trip {n}",
+"رقم": "Number",
+"شكل الاسم الجديد:": "New name pattern:",
+"صغير (أقل من 1 ميغا)": "Small (under 1 MB)",
+"صغيرة": "lowercase",
+"صور": "Images",
+"صور 2025-01-31 001": "2025-01-31 001",
+"صور مكررة": "Duplicate images",
+"ضخم (أكبر من 1 غيغا)": "Huge (over 1 GB)",
+"ضيف:": "Insert:",
+"طريقة التنظيم الافتراضية:": "Default organize mode:",
+"طريقة التنظيم:": "Organize by:",
+"غير موجود: {0}": "Not found: {0}",
+"غيغا": "GB",
+"فتح الملف": "Open file",
+"فتح مكان الملف": "Open file location",
+"قوالب جاهزة:": "Presets:",
+"كبير (100 ميغا - 1 غيغا)": "Large (100 MB - 1 GB)",
+"كبيرة": "UPPERCASE",
+"كل الأحجام": "All sizes",
+"كل التواريخ": "All dates",
+"كل الصور": "All images",
+"كل الملفات ({0})": "All files ({0})",
+"كل الملفات بمكانها الصحيح، ما في شي ينقل.": "All files are already in place — nothing to move.",
+"كل شي منظم، ما في ملفات بدها نقل 👌": "Everything is organized — nothing to move 👌",
+"كيلو": "KB",
+"لا توجد عملية للتراجع عنها.": "Nothing to undo.",
+"لاحقة صغيرة (.JPG ← .jpg)": "Lowercase extension (.JPG → .jpg)",
+"ما في صور متشابهة 👌": "No similar images 👌",
+"ما في ملفات محددة.": "No files selected.",
+"ما في ملفات مكررة بهالمجلد 👌": "No duplicate files in this folder 👌",
+"متأكد؟ رح ينقل {0} ملف.\n(بتقدر تتراجع بعدين)": "Are you sure? {0} file(s) will be moved.\n(You can undo later)",
+"متشابهة": "Similar",
+"متشابهة كتير": "Very similar",
+"متل ما هي": "Keep",
+"متوسط (1-100 ميغا)": "Medium (1-100 MB)",
+"مجموعة {0}  —  {1} صور  •  بتوفّر {2}": "Group {0}  —  {1} images  •  saves {2}",
+"مجموعة {0} — {1} نسخ  ({2} للنسخة)": "Group {0} — {1} copies  ({2} each)",
+"معاينة (المجلد ← عدد الملفات):": "Preview (folder ← number of files):",
+"معاينة:": "Preview:",
+"معروض أول 300 مجموعة.": "Showing the first 300 groups.",
+"ملفات متطابقة 100% (نفس المحتوى حتى لو الاسم مختلف)": "100% identical files (same content even if the name differs)",
+"ملفات مكررة": "Duplicate files",
+"منظّم الملفات": "File Organizer",
+"ميغا": "MB",
+"نسخ المسار": "Copy path",
+"نسخة": "Copy",
+"نفس الصورة (مكررة)": "Same image (duplicate)",
+"نقل": "Move",
+"نقل {0} صورة ({1}) إلى:\n{2} ؟\n(بتقدر تتراجع بعدين)": "Move {0} image(s) ({1}) to:\n{2}?\n(You can undo later)",
+"نقل {0} ملف ({1})\nإلى:\n{2} ؟": "Move {0} file(s) ({1})\nto:\n{2}?",
+"نقل {0} ملف ({1}) لسلة المحذوفات؟\nفيك ترجعهن من سلة المحذوفات بالويندوز.": "Move {0} file(s) ({1}) to the Recycle Bin?\nYou can restore them from the Windows Recycle Bin.",
+"نقل {0} ملف إلى «ملفات مكررة»؟": "Move {0} file(s) to “Duplicate files”?",
+"نقل المحدد إلى...": "Move selected to...",
+"نقل كل المعروض إلى...": "Move all shown to...",
+"نموذج: منظّم الملفات من GraphicWO  123": "Sample: File Organizer by GraphicWO  123",
+"نوع جديد": "New type",
+"نوع جديد {0}": "New type {0}",
+"هالميزة بتحتاج مكتبة Pillow.\nهي موجودة جوّا نسخة الـ EXE، أو نزّلها بالأمر:\npip install pillow": "This feature needs the Pillow library.\nIt's included in the EXE version, or install it with:\npip install pillow",
+"ℹ حول": "ℹ About",
+"↩ تراجع (Ctrl+Z)": "↩ Undo (Ctrl+Z)",
+"↺ الافتراضي": "↺ Defaults",
+"▶ فتح الملف": "▶ Open file",
+"⚙ الإعدادات": "⚙ Settings",
+"✏ إعادة تسمية (F2)": "✏ Rename (F2)",
+"✏ تسمية {0} ملف": "✏ Rename {0} file(s)",
+"✔ حدد المكرر تلقائياً (خلّي الأفضل)": "✔ Auto-select duplicates (keep the best)",
+"✔ حدد النسخ الزايدة (خلّي الأصلية)": "✔ Select extra copies (keep the original)",
+"✖ إلغاء التحديد": "✖ Clear selection",
+"✨ تنظيم تلقائي...": "✨ Auto organize...",
+"➕ نوع جديد": "➕ New type",
+"⭐ الأصلية (الأقدم)": "⭐ Original (oldest)",
+"⭐ الأفضل  •  ": "⭐ Best  •  ",
+"⭐ حسب النوع ثم اللاحقة  (صور/JPG ، صور/PNG ، فيديو/MP4 ، مستندات/PDF ...)": "⭐ By type, then extension  (Images/JPG, Images/PNG, Video/MP4, Documents/PDF ...)",
+"👁 المعاينة": "👁 Preview",
+"💾 حفظ": "💾 Save",
+"📁 اختيار مجلد": "📁 Choose folder",
+"📁 الكل": "📁 All",
+"📂 مكانه": "📂 Location",
+"📌 بدون المجلدات الفرعية": "📌 Subfolders are never touched",
+"📑 الملفات المكررة": "📑 Duplicate files",
+"📦 انقل المحدد إلى...": "📦 Move selected to...",
+"📦 انقل المحدد لمجلد «صور مكررة»": "📦 Move selected to “Duplicate images”",
+"📦 انقل المحدد لمجلد «ملفات مكررة»": "📦 Move selected to “Duplicate files”",
+"📦 نقل المحدد...": "📦 Move selected...",
+"🔍 ابحث": "🔍 Search",
+"🔍 فحص": "🔍 Scan",
+"🖼 الصور المتشابهة": "🖼 Similar images",
+"🗑 حذف (Del)": "🗑 Delete (Del)",
+"🗑 حذف النوع": "🗑 Delete type",
+"🗑 لسلة المحذوفات": "🗑 To Recycle Bin",
+"فيديو": "Videos",
+"صوت": "Audio",
+"مستندات": "Documents",
+"أرشيف": "Archives",
+"برامج": "Programs",
+"كود": "Code",
+"خطوط": "Fonts",
+"أزرق ليلي": "Night blue",
+"فاتح": "Light",
+"بنفسجي": "Purple",
+"برتقالي": "Orange",
+"وردي": "Pink",
+"أخضر GraphicWO": "GraphicWO green",
+"اللغة:": "Language:",
+"أسود": "Black",
+"أبيض": "White",
+"رح يعيد البرنامج التشغيل لتتغيّر اللغة.": "The app will restart to change the language."
+},
+"fr": {
+"\n\nفشل نقل {0} ملف:\n": "\n\nÉchec du déplacement de {0} fichier(s) :\n",
+"\n\nما انحذفوا ({0}):\n": "\n\nNon supprimés ({0}) :\n",
+"   |   المحدد: {0} ملف ({1})": "   |   Sélection : {0} fichier(s) ({1})",
+"   الرقم يبدأ من:": "   Numéro de départ :",
+"  —  الجدول يعرض أول {0} فقط، لكن «نقل كل المعروض» يشمل الكل": "  —  le tableau n'affiche que les {0} premiers, mais « Déplacer tout l'affiché » inclut tout",
+"1 – 10 ميغا": "1 – 10 Mo",
+"10 – 100 ميغا": "10 – 100 Mo",
+"100 ميغا – 1 غيغا": "100 Mo – 1 Go",
+"{0}   ←   {1} ملف": "{0}   ←   {1} fichier(s)",
+"{0}  ({1:,} بايت)": "{0}  ({1:,} octets)",
+"{0}  •  الإصدار {1}": "{0}  •  version {1}",
+"{0} بايت": "{0} o",
+"{0} مجموعة  •  {1} صورة متشابهة  •  المحدد: {2} ({3})": "{0} groupe(s)  •  {1} images similaires  •  sélection : {2} ({3})",
+"{0} مجموعة  •  {1} نسخة زايدة  •  بتوفّر {2}": "{0} groupe(s)  •  {1} copies en trop  •  libère {2}",
+"{date} بياخد تاريخ التصوير من الكاميرا للصور، وإلا تاريخ التعديل": "{date} utilise la date de prise de vue pour les photos, sinon la date de modification",
+"آخر 30 يوم": "30 derniers jours",
+"آخر 7 أيام": "7 derniers jours",
+"آخر تعديل": "Modifié",
+"آخر سنة": "Dernière année",
+"أخرى": "Autres",
+"أصغر من 1 ميغا": "Moins de 1 Mo",
+"أقدم من سنة": "Plus d'un an",
+"أقصى عدد ملفات يُعرض بالجدول:": "Nombre max. de fichiers affichés :",
+"أكبر من 1 غيغا": "Plus de 1 Go",
+"أول حرف كبير": "Majuscule initiale",
+"إرجاع الأنواع للوضع الافتراضي؟": "Restaurer les types par défaut ?",
+"إظهار لوحة المعاينة": "Afficher le panneau d'aperçu",
+"إعادة تسمية": "Renommage",
+"إعادة تسمية {0} ملف ({1})": "Renommer {0} fichier(s) ({1})",
+"إعادة تسمية {0} ملف؟\n(بتقدر تتراجع بعدين)": "Renommer {0} fichier(s) ?\n(Vous pourrez annuler)",
+"إعادة تسمية جماعية": "Renommage par lot",
+"إعادة تسمية...": "Renommer...",
+"إغلاق": "Fermer",
+"إلغاء": "Annuler",
+"اختار درجة التشابه واكبس «ابحث».": "Choisissez un niveau de similarité puis « Rechercher ».",
+"اختار ملف لتشوف معاينته": "Sélectionnez un fichier pour l'aperçu",
+"اختار نوع من القائمة وعدّل لواحقه (افصل بينها بمسافة). الملفات اللي لاحقتها مو موجودة بتروح لـ «أخرى».": "Choisissez un type et modifiez ses extensions (séparées par des espaces). Les autres fichiers vont dans « Autres ».",
+"اختر المجلد": "Choisir le dossier",
+"اختر المجلد الذي سيتم النقل إليه": "Choisir le dossier de destination",
+"اختر مجلداً ثم اضغط «فحص».": "Choisissez un dossier, puis « Analyser ».",
+"اختر مجلداً صحيحاً أولاً.": "Choisissez d'abord un dossier valide.",
+"اسألني للتأكيد قبل النقل": "Demander confirmation avant de déplacer",
+"استبدال:": "Remplacer :",
+"اسم الملف": "Nom du fichier",
+"اسم النوع (هو اسم المجلد وقت التنظيم):": "Nom du type (nom du dossier lors du rangement) :",
+"اسم مجلد الملفات غير المصنفة:": "Dossier des fichiers non classés :",
+"افحص مجلداً أولاً.": "Analysez d'abord un dossier.",
+"الأبعاد": "Dimensions",
+"الأحرف:": "Casse :",
+"الألوان:": "Couleurs :",
+"الأنواع واللواحق": "Types et extensions",
+"الإعدادات": "Paramètres",
+"الاسم": "Nom",
+"الاسم الجديد": "Nouveau nom",
+"الاسم الحالي": "Nom actuel",
+"الاسم_001": "nom_001",
+"التاريخ": "Date",
+"التاريخ (الأقدم أولاً)": "Date (plus ancien d'abord)",
+"التاريخ:": "Date :",
+"التراجع عن آخر عملية «{0}»؟\n{1} ملف بيرجعوا متل ما كانوا.\n(العملية من: {2})": "Annuler la dernière opération « {0} » ?\n{1} fichier(s) seront restaurés.\n(du : {2})",
+"الترتيب الحالي": "Ordre actuel",
+"الترقيم حسب:": "Numéroter par :",
+"التصنيف": "Catégorie",
+"الحجم": "Taille",
+"الحجم الكلي": "Taille totale",
+"الحجم:": "Taille :",
+"الخط «{0}» مو منزّل على الجهاز — رح يستخدم {1} لحد ما تنزّله أو تحطّه بمجلد fonts": "La police « {0} » n'est pas installée — {1} est utilisée en attendant (ou placez-la dans le dossier fonts)",
+"الخط:": "Police :",
+"الصور المتشابهة": "Images similaires",
+"العدد": "Nombre",
+"الكل": "Tout",
+"اللاحقة": "Extension",
+"اللواحق:": "Extensions :",
+"المجلد:": "Dossier :",
+"المجلدات الجديدة تنعمل داخل:": "Les nouveaux dossiers seront créés dans :",
+"المحددة": "sélectionnés",
+"المظهر والخط": "Apparence et police",
+"المعاينة": "Aperçu",
+"المعروض: {0}": "Affiché : {0}",
+"المعروض: {0} ملف ({1})": "Affiché : {0} fichier(s) ({1})",
+"المعروضة": "affichés",
+"المعروضة بس": "Affichées seulement",
+"المكان": "Emplacement",
+"الملف": "Fichier",
+"الملفات المعروضة حالياً فقط ({0})": "Seulement les fichiers affichés ({0})",
+"الملفات المكررة": "Fichiers en double",
+"الملفات:": "Fichiers :",
+"النسبة": "Part",
+"النوع": "Type",
+"النوع / اللاحقة": "Type / extension",
+"الوقت": "Heure",
+"اليوم": "Aujourd'hui",
+"انحذف {0} ملف لسلة المحذوفات 🗑": "{0} fichier(s) placés dans la corbeille 🗑",
+"بحث:": "Recherche :",
+"بدون لاحقة": "Sans extension",
+"بـ": "par",
+"تاريخ الإنشاء": "Créé",
+"تاريخ التصوير/التعديل": "Date photo/modif.",
+"تجاهل الملفات والمجلدات المخفية": "Ignorer les fichiers et dossiers cachés",
+"تسمية": "Renommer",
+"تطوير وتصميم: {0}": "Développé et conçu par {0}",
+"تطوير: {0}": "par {0}",
+"تغيير": "Modifier",
+"تم إرجاع {0} ملف ✅": "{0} fichier(s) restaurés ✅",
+"تم تحديد {0} ملف": "{0} fichiers sélectionnés",
+"تم نسخ مسار {0} ملف 📋": "Chemin de {0} fichier(s) copié 📋",
+"تم نقل {0} ملف ✅": "{0} fichier(s) déplacés ✅",
+"تمت إعادة تسمية {0} ملف ✅": "{0} fichier(s) renommés ✅",
+"تنظيم تلقائي": "Rangement automatique",
+"تنفيذ": "Exécuter",
+"تنفيذ ونقل {0} ملف": "Déplacer {0} fichier(s)",
+"جارٍ البحث عن الملفات المتطابقة...": "Recherche de fichiers identiques...",
+"جارٍ الفحص...": "Analyse...",
+"جارٍ الفحص... {0} ملف": "Analyse... {0} fichiers",
+"جارٍ تحليل {0} صورة...": "Analyse de {0} images...",
+"جارٍ تحليل الصور... {0}/{1}": "Analyse des images... {0}/{1}",
+"جارٍ مقارنة الصور...": "Comparaison des images...",
+"جارٍ مقارنة المحتوى... {0}/{1}": "Comparaison du contenu... {0}/{1}",
+"حدد الصور اللي بدك تنقلها أولاً.": "Sélectionnez d'abord les images à déplacer.",
+"حدد الملفات اللي بدك تحذفها.": "Sélectionnez les fichiers à supprimer.",
+"حدد النسخ أولاً (أو اكبس «حدد النسخ الزايدة»).": "Sélectionnez d'abord les copies (ou « Sélectionner les copies en trop »).",
+"حذف النوع «{0}»؟": "Supprimer le type « {0} » ?",
+"حسب الحجم  (صغير / متوسط / كبير / ضخم)": "Par taille  (petit / moyen / grand / énorme)",
+"حسب اللاحقة فقط  (JPG / PDF / MP4 ...)": "Par extension seulement  (JPG / PDF / MP4 ...)",
+"حسب النوع بس  (صور / فيديو / مستندات ...)": "Par type seulement  (Images / Vidéos / Documents ...)",
+"حسب سنة وشهر التعديل  (2025/03 ...)": "Par année et mois de modification  (2025/03 ...)",
+"حول": "À propos",
+"خانات:": "Chiffres :",
+"خيارات عامة": "Général",
+"درجة التشابه:": "Similarité :",
+"رجوع للاسم": "Nom d'origine",
+"رحلة 001": "Voyage 001",
+"رحلة {n}": "Voyage {n}",
+"رقم": "Numéro",
+"شكل الاسم الجديد:": "Modèle du nouveau nom :",
+"صغير (أقل من 1 ميغا)": "Petit (moins de 1 Mo)",
+"صغيرة": "minuscules",
+"صور": "Images",
+"صور 2025-01-31 001": "2025-01-31 001",
+"صور مكررة": "Images en double",
+"ضخم (أكبر من 1 غيغا)": "Énorme (plus de 1 Go)",
+"ضيف:": "Insérer :",
+"طريقة التنظيم الافتراضية:": "Mode de rangement par défaut :",
+"طريقة التنظيم:": "Ranger par :",
+"غير موجود: {0}": "Introuvable : {0}",
+"غيغا": "Go",
+"فتح الملف": "Ouvrir le fichier",
+"فتح مكان الملف": "Ouvrir l'emplacement",
+"قوالب جاهزة:": "Modèles :",
+"كبير (100 ميغا - 1 غيغا)": "Grand (100 Mo - 1 Go)",
+"كبيرة": "MAJUSCULES",
+"كل الأحجام": "Toutes les tailles",
+"كل التواريخ": "Toutes les dates",
+"كل الصور": "Toutes les images",
+"كل الملفات ({0})": "Tous les fichiers ({0})",
+"كل الملفات بمكانها الصحيح، ما في شي ينقل.": "Tous les fichiers sont déjà rangés — rien à déplacer.",
+"كل شي منظم، ما في ملفات بدها نقل 👌": "Tout est rangé — rien à déplacer 👌",
+"كيلو": "Ko",
+"لا توجد عملية للتراجع عنها.": "Rien à annuler.",
+"لاحقة صغيرة (.JPG ← .jpg)": "Extension en minuscules (.JPG → .jpg)",
+"ما في صور متشابهة 👌": "Aucune image similaire 👌",
+"ما في ملفات محددة.": "Aucun fichier sélectionné.",
+"ما في ملفات مكررة بهالمجلد 👌": "Aucun doublon dans ce dossier 👌",
+"متأكد؟ رح ينقل {0} ملف.\n(بتقدر تتراجع بعدين)": "Confirmer ? {0} fichier(s) seront déplacés.\n(Vous pourrez annuler)",
+"متشابهة": "Similaires",
+"متشابهة كتير": "Très similaires",
+"متل ما هي": "Inchangée",
+"متوسط (1-100 ميغا)": "Moyen (1-100 Mo)",
+"مجموعة {0}  —  {1} صور  •  بتوفّر {2}": "Groupe {0}  —  {1} images  •  libère {2}",
+"مجموعة {0} — {1} نسخ  ({2} للنسخة)": "Groupe {0} — {1} copies  ({2} chacune)",
+"معاينة (المجلد ← عدد الملفات):": "Aperçu (dossier ← nombre de fichiers) :",
+"معاينة:": "Aperçu :",
+"معروض أول 300 مجموعة.": "Affichage des 300 premiers groupes.",
+"ملفات متطابقة 100% (نفس المحتوى حتى لو الاسم مختلف)": "Fichiers 100 % identiques (même contenu, même si le nom diffère)",
+"ملفات مكررة": "Fichiers en double",
+"منظّم الملفات": "Organiseur de fichiers",
+"ميغا": "Mo",
+"نسخ المسار": "Copier le chemin",
+"نسخة": "Copie",
+"نفس الصورة (مكررة)": "Même image (doublon)",
+"نقل": "Déplacement",
+"نقل {0} صورة ({1}) إلى:\n{2} ؟\n(بتقدر تتراجع بعدين)": "Déplacer {0} image(s) ({1}) vers :\n{2} ?\n(Vous pourrez annuler)",
+"نقل {0} ملف ({1})\nإلى:\n{2} ؟": "Déplacer {0} fichier(s) ({1})\nvers :\n{2} ?",
+"نقل {0} ملف ({1}) لسلة المحذوفات؟\nفيك ترجعهن من سلة المحذوفات بالويندوز.": "Placer {0} fichier(s) ({1}) dans la corbeille ?\nVous pourrez les restaurer depuis la corbeille Windows.",
+"نقل {0} ملف إلى «ملفات مكررة»؟": "Déplacer {0} fichier(s) vers « Fichiers en double » ?",
+"نقل المحدد إلى...": "Déplacer la sélection vers...",
+"نقل كل المعروض إلى...": "Déplacer tout l'affiché vers...",
+"نموذج: منظّم الملفات من GraphicWO  123": "Exemple : Organiseur de fichiers GraphicWO  123",
+"نوع جديد": "Nouveau type",
+"نوع جديد {0}": "Nouveau type {0}",
+"هالميزة بتحتاج مكتبة Pillow.\nهي موجودة جوّا نسخة الـ EXE، أو نزّلها بالأمر:\npip install pillow": "Cette fonction nécessite la bibliothèque Pillow.\nElle est incluse dans la version EXE, ou installez-la avec :\npip install pillow",
+"ℹ حول": "ℹ À propos",
+"↩ تراجع (Ctrl+Z)": "↩ Annuler (Ctrl+Z)",
+"↺ الافتراضي": "↺ Par défaut",
+"▶ فتح الملف": "▶ Ouvrir",
+"⚙ الإعدادات": "⚙ Paramètres",
+"✏ إعادة تسمية (F2)": "✏ Renommer (F2)",
+"✏ تسمية {0} ملف": "✏ Renommer {0} fichier(s)",
+"✔ حدد المكرر تلقائياً (خلّي الأفضل)": "✔ Sélection auto des doublons (garder le meilleur)",
+"✔ حدد النسخ الزايدة (خلّي الأصلية)": "✔ Sélectionner les copies en trop (garder l'original)",
+"✖ إلغاء التحديد": "✖ Désélectionner",
+"✨ تنظيم تلقائي...": "✨ Ranger automatiquement...",
+"➕ نوع جديد": "➕ Nouveau type",
+"⭐ الأصلية (الأقدم)": "⭐ Original (le plus ancien)",
+"⭐ الأفضل  •  ": "⭐ Meilleure  •  ",
+"⭐ حسب النوع ثم اللاحقة  (صور/JPG ، صور/PNG ، فيديو/MP4 ، مستندات/PDF ...)": "⭐ Par type puis extension  (Images/JPG, Images/PNG, Vidéos/MP4, Documents/PDF ...)",
+"👁 المعاينة": "👁 Aperçu",
+"💾 حفظ": "💾 Enregistrer",
+"📁 اختيار مجلد": "📁 Choisir un dossier",
+"📁 الكل": "📁 Tout",
+"📂 مكانه": "📂 Emplacement",
+"📌 بدون المجلدات الفرعية": "📌 Les sous-dossiers ne sont jamais touchés",
+"📑 الملفات المكررة": "📑 Fichiers en double",
+"📦 انقل المحدد إلى...": "📦 Déplacer la sélection vers...",
+"📦 انقل المحدد لمجلد «صور مكررة»": "📦 Déplacer vers « Images en double »",
+"📦 انقل المحدد لمجلد «ملفات مكررة»": "📦 Déplacer vers « Fichiers en double »",
+"📦 نقل المحدد...": "📦 Déplacer...",
+"🔍 ابحث": "🔍 Rechercher",
+"🔍 فحص": "🔍 Analyser",
+"🖼 الصور المتشابهة": "🖼 Images similaires",
+"🗑 حذف (Del)": "🗑 Supprimer (Suppr)",
+"🗑 حذف النوع": "🗑 Supprimer le type",
+"🗑 لسلة المحذوفات": "🗑 Vers la corbeille",
+"فيديو": "Vidéos",
+"صوت": "Audio",
+"مستندات": "Documents",
+"أرشيف": "Archives",
+"برامج": "Programmes",
+"كود": "Code",
+"خطوط": "Polices",
+"أزرق ليلي": "Bleu nuit",
+"فاتح": "Clair",
+"بنفسجي": "Violet",
+"برتقالي": "Orange",
+"وردي": "Rose",
+"أخضر GraphicWO": "Vert GraphicWO",
+"اللغة:": "Langue :",
+"أسود": "Noir",
+"أبيض": "Blanc",
+"رح يعيد البرنامج التشغيل لتتغيّر اللغة.": "L'application va redémarrer pour changer de langue."
+}
+}
+
+
+def T(s):
+    if LANG == "ar":
+        return s
+    return TR.get(LANG, {}).get(s, s)
+
+
+APP_NAME = T("منظّم الملفات")
 APP_VERSION = "1.0"
 DEV_NAME = "GraphicWO"
 DEV_LINK = "https://kick.com/graphicwo"
@@ -43,6 +568,10 @@ THEMES = {
                 "#ffa366", "#7a3f17", "#ffffff", "#0d0b09", "#2a241c", "#3a3126", "#221e18", "#191612"),
     "وردي": ("#18111a", "#201722", "#2a1e2d", "#45304a", "#fbeaf6", "#c19bb7", "#ff4fa3", "#ffffff",
              "#ff78ba", "#7d2457", "#ffffff", "#100b12", "#2c1f30", "#3d2b42", "#25192a", "#1c141f"),
+    "أسود": ("#000000", "#0a0a0a", "#141414", "#2e2e2e", "#ffffff", "#9a9a9a", "#ffffff", "#000000",
+             "#d9d9d9", "#3a3a3a", "#ffffff", "#000000", "#1a1a1a", "#2a2a2a", "#111111", "#070707"),
+    "أبيض": ("#ffffff", "#ffffff", "#ffffff", "#d4d4d4", "#000000", "#6b6b6b", "#000000", "#ffffff",
+             "#2b2b2b", "#e6e6e6", "#000000", "#ffffff", "#f0f0f0", "#e2e2e2", "#f5f5f5", "#fafafa"),
     "أخضر GraphicWO": ("#0b120d", "#111c15", "#162419", "#23402b", "#e8f5ea", "#8fb39a", "#7ee81f", "#06110a",
                        "#a4ff4f", "#2b6e2f", "#ffffff", "#050a06", "#1b2e20", "#24402b", "#1a2c1f", "#0f1912"),
 }
@@ -65,6 +594,7 @@ DEFAULT_CATEGORIES = {
     "كود": "py js ts jsx tsx html htm css scss json xml yml yaml java c cpp h hpp cs php sql sh ps1 go rs kt swift ipynb",
     "خطوط": "ttf otf woff woff2 fon",
 }
+DEFAULT_CATEGORIES = {T(k): v for k, v in DEFAULT_CATEGORIES.items()}
 DEFAULT_SETTINGS = {
     "categories": DEFAULT_CATEGORIES,
     "recursive": False,
@@ -73,32 +603,34 @@ DEFAULT_SETTINGS = {
     "max_rows": 5000,
     "default_mode": "cat_ext",
     "ver": 2,
-    "other_name": "أخرى",
+    "other_name": T("أخرى"),
     "last_folder": "",
     "theme": DEFAULT_THEME,
     "show_preview": True,
     "font": "GE SS Two",
     "recent": [],
+    "lang": LANG,
 }
-NOEXT = "بدون لاحقة"
+NOEXT = T("بدون لاحقة")
 SKIP_NAMES = {"desktop.ini", "thumbs.db", ".ds_store"}
 ICONS = {"صور": "🖼", "فيديو": "🎬", "صوت": "🎵", "مستندات": "📄", "أرشيف": "🗜",
          "برامج": "⚙", "كود": "💻", "خطوط": "🔤"}
+ICONS.update({T(k): v for k, v in list(ICONS.items())})
 
 SIZE_FILTERS = [
-    ("كل الأحجام", 0, None),
-    ("أصغر من 1 ميغا", 0, MB),
-    ("1 – 10 ميغا", MB, 10 * MB),
-    ("10 – 100 ميغا", 10 * MB, 100 * MB),
-    ("100 ميغا – 1 غيغا", 100 * MB, GB),
-    ("أكبر من 1 غيغا", GB, None),
+    (T("كل الأحجام"), 0, None),
+    (T("أصغر من 1 ميغا"), 0, MB),
+    (T("1 – 10 ميغا"), MB, 10 * MB),
+    (T("10 – 100 ميغا"), 10 * MB, 100 * MB),
+    (T("100 ميغا – 1 غيغا"), 100 * MB, GB),
+    (T("أكبر من 1 غيغا"), GB, None),
 ]
 ORGANIZE_MODES = [
-    ("cat_ext", "⭐ حسب النوع ثم اللاحقة  (صور/JPG ، صور/PNG ، فيديو/MP4 ، مستندات/PDF ...)"),
-    ("cat", "حسب النوع بس  (صور / فيديو / مستندات ...)"),
-    ("ext", "حسب اللاحقة فقط  (JPG / PDF / MP4 ...)"),
-    ("size", "حسب الحجم  (صغير / متوسط / كبير / ضخم)"),
-    ("date", "حسب سنة وشهر التعديل  (2025/03 ...)"),
+    ("cat_ext", T("⭐ حسب النوع ثم اللاحقة  (صور/JPG ، صور/PNG ، فيديو/MP4 ، مستندات/PDF ...)")),
+    ("cat", T("حسب النوع بس  (صور / فيديو / مستندات ...)")),
+    ("ext", T("حسب اللاحقة فقط  (JPG / PDF / MP4 ...)")),
+    ("size", T("حسب الحجم  (صغير / متوسط / كبير / ضخم)")),
+    ("date", T("حسب سنة وشهر التعديل  (2025/03 ...)")),
 ]
 
 LOGO_B64 = "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"
@@ -149,20 +681,20 @@ S = Settings()
 # ------------------------------------------------------------------ المنطق
 
 def human(n):
-    for unit, size in (("غيغا", GB), ("ميغا", MB), ("كيلو", KB)):
+    for unit, size in ((T("غيغا"), GB), (T("ميغا"), MB), (T("كيلو"), KB)):
         if n >= size:
             return f"{n / size:.1f} {unit}"
-    return f"{n} بايت"
+    return T("{0} بايت").format(n)
 
 
 def size_bucket(n):
     if n < MB:
-        return "صغير (أقل من 1 ميغا)"
+        return T("صغير (أقل من 1 ميغا)")
     if n < 100 * MB:
-        return "متوسط (1-100 ميغا)"
+        return T("متوسط (1-100 ميغا)")
     if n < GB:
-        return "كبير (100 ميغا - 1 غيغا)"
-    return "ضخم (أكبر من 1 غيغا)"
+        return T("كبير (100 ميغا - 1 غيغا)")
+    return T("ضخم (أكبر من 1 غيغا)")
 
 
 def file_info(path):
@@ -271,7 +803,7 @@ def _write_undo(ops):
         pass
 
 
-def save_undo(moved, created, label="نقل"):
+def save_undo(moved, created, label=T("نقل")):
     ops = _read_undo()
     ops.append({"time": datetime.now().isoformat(timespec="seconds"), "label": label,
                 "moved": moved, "created": created})
@@ -290,13 +822,13 @@ def undo_count():
 def undo_last():
     ops = _read_undo()
     if not ops:
-        return 0, ["لا توجد عملية للتراجع عنها."]
+        return 0, [T("لا توجد عملية للتراجع عنها.")]
     data = ops.pop()
     ok, errors = 0, []
     for src, dst in reversed(data["moved"]):
         try:
             if not os.path.exists(dst):
-                errors.append(f"غير موجود: {os.path.basename(dst)}")
+                errors.append(T("غير موجود: {0}").format(os.path.basename(dst)))
                 continue
             os.makedirs(os.path.dirname(src), exist_ok=True)
             back = src if not os.path.exists(src) else unique_path(os.path.dirname(src), os.path.basename(src))
@@ -453,12 +985,12 @@ def build_new_name(f, idx, opts):
 
 
 DATE_FILTERS = [
-    ("كل التواريخ", None),
-    ("اليوم", 1),
-    ("آخر 7 أيام", 7),
-    ("آخر 30 يوم", 30),
-    ("آخر سنة", 365),
-    ("أقدم من سنة", -365),
+    (T("كل التواريخ"), None),
+    (T("اليوم"), 1),
+    (T("آخر 7 أيام"), 7),
+    (T("آخر 30 يوم"), 30),
+    (T("آخر سنة"), 365),
+    (T("أقدم من سنة"), -365),
 ]
 
 
@@ -541,9 +1073,9 @@ def F(size, bold=False, extra=None):
 # ------------------------------------------------------------------ الصور المتشابهة
 
 SIMILAR_LEVELS = [
-    ("نفس الصورة (مكررة)", 6),
-    ("متشابهة كتير", 16),
-    ("متشابهة", 26),
+    (T("نفس الصورة (مكررة)"), 6),
+    (T("متشابهة كتير"), 16),
+    (T("متشابهة"), 26),
 ]
 HASHABLE = {"jpg", "jpeg", "png", "gif", "bmp", "webp", "tif", "tiff", "jfif", "ico", "ppm"}
 
@@ -735,7 +1267,7 @@ class App(tk.Tk):
         self.search = tk.StringVar()
         self.size_filter = tk.StringVar(value=SIZE_FILTERS[0][0])
         self.date_filter = tk.StringVar(value=DATE_FILTERS[0][0])
-        self.status = tk.StringVar(value="اختر مجلداً ثم اضغط «فحص».")
+        self.status = tk.StringVar(value=T("اختر مجلداً ثم اضغط «فحص»."))
 
         self.files, self.filtered = [], []
         self.sel_cat = self.sel_ext = None
@@ -753,34 +1285,34 @@ class App(tk.Tk):
         header = ttk.Frame(self, style="Header.TFrame", padding=(12, 6))
         header.pack(fill="x")
         brand = ttk.Frame(header, style="Header.TFrame")
-        brand.pack(side="right")
+        brand.pack(side=SR)
         if self.img_avatar_s:
-            ttk.Label(brand, image=self.img_avatar_s, style="Header.TLabel").pack(side="right", padx=(6, 0))
+            ttk.Label(brand, image=self.img_avatar_s, style="Header.TLabel").pack(side=SR, padx=(6, 0))
         txt = ttk.Frame(brand, style="Header.TFrame")
-        txt.pack(side="right", padx=6)
+        txt.pack(side=SR, padx=6)
         ttk.Label(txt, text=APP_NAME, style="Header.TLabel",
-                  font=F(15, True), foreground=ACCENT).pack(anchor="e")
-        ttk.Label(txt, text=f"تطوير: {DEV_NAME}", style="HeaderMuted.TLabel").pack(anchor="e")
+                  font=F(15, True), foreground=ACCENT).pack(anchor=AE)
+        ttk.Label(txt, text=T("تطوير: {0}").format(DEV_NAME), style="HeaderMuted.TLabel").pack(anchor=AE)
         if self.img_logo:
             lg = ttk.Label(header, image=self.img_logo, style="Header.TLabel", cursor="hand2")
-            lg.pack(side="left")
+            lg.pack(side=SL)
             lg.bind("<Button-1>", lambda e: self.about())
-        ttk.Button(header, text="ℹ حول", style="Header.TButton", command=self.about).pack(side="left", padx=(14, 4))
-        ttk.Button(header, text="⚙ الإعدادات", style="Header.TButton", command=self.settings_dialog).pack(side="left", padx=4)
-        ttk.Button(header, text="🖼 الصور المتشابهة", style="Header.TButton", command=self.similar_dialog).pack(side="left", padx=4)
-        ttk.Button(header, text="👁 المعاينة", style="Header.TButton", command=self.toggle_preview).pack(side="left", padx=4)
+        ttk.Button(header, text=T("ℹ حول"), style="Header.TButton", command=self.about).pack(side=SL, padx=(14, 4))
+        ttk.Button(header, text=T("⚙ الإعدادات"), style="Header.TButton", command=self.settings_dialog).pack(side=SL, padx=4)
+        ttk.Button(header, text=T("🖼 الصور المتشابهة"), style="Header.TButton", command=self.similar_dialog).pack(side=SL, padx=4)
+        ttk.Button(header, text=T("👁 المعاينة"), style="Header.TButton", command=self.toggle_preview).pack(side=SL, padx=4)
 
         # شريط المجلد
         top = ttk.Frame(self, padding=(10, 8))
         top.pack(fill="x")
-        ttk.Label(top, text="المجلد:").pack(side="right")
-        ttk.Button(top, text="📁 اختيار مجلد", command=self.choose_folder).pack(side="right", padx=4)
+        ttk.Label(top, text=T("المجلد:")).pack(side=SR)
+        ttk.Button(top, text=T("📁 اختيار مجلد"), command=self.choose_folder).pack(side=SR, padx=4)
         self.folder_cb = ttk.Combobox(top, textvariable=self.root_dir, values=S["recent"], justify="left")
-        self.folder_cb.pack(side="right", fill="x", expand=True, padx=4)
+        self.folder_cb.pack(side=SR, fill="x", expand=True, padx=4)
         self.folder_cb.bind("<<ComboboxSelected>>", lambda e: self.start_scan())
         self.folder_cb.bind("<Return>", lambda e: self.start_scan())
-        ttk.Label(top, text="📌 بدون المجلدات الفرعية", style="Muted.TLabel").pack(side="right", padx=8)
-        ttk.Button(top, text="🔍 فحص", style="Accent.TButton", command=self.start_scan).pack(side="right", padx=4)
+        ttk.Label(top, text=T("📌 بدون المجلدات الفرعية"), style="Muted.TLabel").pack(side=SR, padx=8)
+        ttk.Button(top, text=T("🔍 فحص"), style="Accent.TButton", command=self.start_scan).pack(side=SR, padx=4)
 
         body = ttk.PanedWindow(self, orient="horizontal")
         body.pack(fill="both", expand=True, padx=10)
@@ -806,15 +1338,15 @@ class App(tk.Tk):
         self.after(80, init_sashes)
 
         # ملخص الأنواع
-        ttk.Label(types_panel, text="الأنواع واللواحق", style="Title.TLabel").pack(anchor="e", pady=(0, 4), padx=4)
+        ttk.Label(types_panel, text=T("الأنواع واللواحق"), style="Title.TLabel").pack(anchor=AE, pady=(0, 4), padx=4)
         self.summary = ttk.Treeview(types_panel, columns=("count", "size", "pct"), selectmode="browse")
-        for col, t, w in (("#0", "النوع / اللاحقة", 150), ("count", "العدد", 60),
-                          ("size", "الحجم", 85), ("pct", "النسبة", 60)):
+        for col, t, w in (("#0", T("النوع / اللاحقة"), 150), ("count", T("العدد"), 60),
+                          ("size", T("الحجم"), 85), ("pct", T("النسبة"), 60)):
             self.summary.heading(col, text=t)
-            self.summary.column(col, width=w, anchor="e" if col == "#0" else "center")
+            self.summary.column(col, width=w, anchor=AE if col == "#0" else "center")
         sb = ttk.Scrollbar(types_panel, command=self.summary.yview)
         self.summary.configure(yscrollcommand=sb.set)
-        sb.pack(side="left", fill="y")
+        sb.pack(side=SL, fill="y")
         self.summary.pack(fill="both", expand=True, padx=(0, 4))
         self.summary.bind("<<TreeviewSelect>>", self.on_summary_select)
         self.summary.tag_configure("cat", foreground=ACCENT)
@@ -822,34 +1354,34 @@ class App(tk.Tk):
         # الفلترة
         fbar = ttk.Frame(files_panel)
         fbar.pack(fill="x", pady=(0, 4))
-        ttk.Label(fbar, text="بحث:").pack(side="right")
-        ttk.Entry(fbar, textvariable=self.search, width=16).pack(side="right", padx=4)
-        ttk.Label(fbar, text="الحجم:").pack(side="right", padx=(10, 0))
+        ttk.Label(fbar, text=T("بحث:")).pack(side=SR)
+        ttk.Entry(fbar, textvariable=self.search, width=16).pack(side=SR, padx=4)
+        ttk.Label(fbar, text=T("الحجم:")).pack(side=SR, padx=(10, 0))
         cb = ttk.Combobox(fbar, textvariable=self.size_filter, state="readonly",
-                          values=[s[0] for s in SIZE_FILTERS], justify="right", width=15)
-        cb.pack(side="right", padx=4)
+                          values=[s[0] for s in SIZE_FILTERS], justify=JR, width=15)
+        cb.pack(side=SR, padx=4)
         cb.bind("<<ComboboxSelected>>", lambda e: self.refresh_files())
-        ttk.Label(fbar, text="التاريخ:").pack(side="right", padx=(10, 0))
+        ttk.Label(fbar, text=T("التاريخ:")).pack(side=SR, padx=(10, 0))
         cbd = ttk.Combobox(fbar, textvariable=self.date_filter, state="readonly", width=13,
-                           values=[d[0] for d in DATE_FILTERS], justify="right")
-        cbd.pack(side="right", padx=4)
+                           values=[d[0] for d in DATE_FILTERS], justify=JR)
+        cbd.pack(side=SR, padx=4)
         cbd.bind("<<ComboboxSelected>>", lambda e: self.refresh_files())
         self.search_entry = fbar.winfo_children()[1]
         self.filter_lbl = ttk.Label(fbar, text="", foreground=ACCENT)
-        self.filter_lbl.pack(side="left")
+        self.filter_lbl.pack(side=SL)
 
         # جدول الملفات
         cols = ("name", "ext", "size", "date", "folder")
         self.table = ttk.Treeview(files_panel, columns=cols, show="headings", selectmode="extended")
-        heads = {"name": ("اسم الملف", 280), "ext": ("اللاحقة", 75), "size": ("الحجم", 90),
-                 "date": ("آخر تعديل", 140), "folder": ("التصنيف", 140)}
+        heads = {"name": (T("اسم الملف"), 280), "ext": (T("اللاحقة"), 75), "size": (T("الحجم"), 90),
+                 "date": (T("آخر تعديل"), 140), "folder": (T("التصنيف"), 140)}
         for c in cols:
             t, w = heads[c]
             self.table.heading(c, text=t, command=lambda c=c: self.sort_by(c))
             self.table.column(c, width=w, anchor="w" if c == "name" else "center")
         ys = ttk.Scrollbar(files_panel, command=self.table.yview)
         self.table.configure(yscrollcommand=ys.set)
-        ys.pack(side="right", fill="y")
+        ys.pack(side=SR, fill="y")
         self.table.pack(fill="both", expand=True)
         self.table.tag_configure("odd", background=ODD)
         self.table.bind("<Double-1>", lambda e: self.open_selected())
@@ -858,15 +1390,15 @@ class App(tk.Tk):
         self.table.bind("<<TreeviewSelect>>", self.on_table_select)
 
         self.menu = tk.Menu(self, tearoff=0)
-        self.menu.add_command(label="فتح الملف", command=self.open_selected)
-        self.menu.add_command(label="فتح مكان الملف", command=self.reveal_selected)
+        self.menu.add_command(label=T("فتح الملف"), command=self.open_selected)
+        self.menu.add_command(label=T("فتح مكان الملف"), command=self.reveal_selected)
         self.menu.add_separator()
-        self.menu.add_command(label="نقل المحدد إلى...", command=self.move_selected)
-        self.menu.add_command(label="نقل كل المعروض إلى...", command=self.move_filtered)
-        self.menu.add_command(label="إعادة تسمية...", command=self.rename_dialog)
-        self.menu.add_command(label="نسخ المسار", command=self.copy_path)
+        self.menu.add_command(label=T("نقل المحدد إلى..."), command=self.move_selected)
+        self.menu.add_command(label=T("نقل كل المعروض إلى..."), command=self.move_filtered)
+        self.menu.add_command(label=T("إعادة تسمية..."), command=self.rename_dialog)
+        self.menu.add_command(label=T("نسخ المسار"), command=self.copy_path)
         self.menu.add_separator()
-        self.menu.add_command(label="🗑 لسلة المحذوفات", command=self.trash_selected)
+        self.menu.add_command(label=T("🗑 لسلة المحذوفات"), command=self.trash_selected)
 
         for seq, fn in (("<Control-a>", self.select_all), ("<Control-A>", self.select_all),
                         ("<Delete>", self.trash_selected), ("<F2>", self.rename_dialog),
@@ -881,23 +1413,23 @@ class App(tk.Tk):
         # الأزرار
         bottom = ttk.Frame(self, padding=(10, 8))
         bottom.pack(fill="x")
-        ttk.Button(bottom, text="✨ تنظيم تلقائي...", style="Accent.TButton",
-                   command=self.organize_dialog).pack(side="right", padx=3)
-        ttk.Button(bottom, text="🖼 الصور المتشابهة", style="Accent.TButton",
-                   command=self.similar_dialog).pack(side="right", padx=3)
-        ttk.Button(bottom, text="📑 الملفات المكررة", style="Accent.TButton",
-                   command=self.duplicates_dialog).pack(side="right", padx=3)
-        ttk.Button(bottom, text="✏ إعادة تسمية (F2)", command=self.rename_dialog).pack(side="right", padx=3)
-        ttk.Button(bottom, text="📦 نقل المحدد...", command=self.move_selected).pack(side="right", padx=3)
-        ttk.Button(bottom, text="🗑 حذف (Del)", command=self.trash_selected).pack(side="right", padx=3)
-        self.undo_btn = ttk.Button(bottom, text="↩ تراجع (Ctrl+Z)", command=self.do_undo)
-        self.undo_btn.pack(side="left", padx=3)
+        ttk.Button(bottom, text=T("✨ تنظيم تلقائي..."), style="Accent.TButton",
+                   command=self.organize_dialog).pack(side=SR, padx=3)
+        ttk.Button(bottom, text=T("🖼 الصور المتشابهة"), style="Accent.TButton",
+                   command=self.similar_dialog).pack(side=SR, padx=3)
+        ttk.Button(bottom, text=T("📑 الملفات المكررة"), style="Accent.TButton",
+                   command=self.duplicates_dialog).pack(side=SR, padx=3)
+        ttk.Button(bottom, text=T("✏ إعادة تسمية (F2)"), command=self.rename_dialog).pack(side=SR, padx=3)
+        ttk.Button(bottom, text=T("📦 نقل المحدد..."), command=self.move_selected).pack(side=SR, padx=3)
+        ttk.Button(bottom, text=T("🗑 حذف (Del)"), command=self.trash_selected).pack(side=SR, padx=3)
+        self.undo_btn = ttk.Button(bottom, text=T("↩ تراجع (Ctrl+Z)"), command=self.do_undo)
+        self.undo_btn.pack(side=SL, padx=3)
 
 
         sbar = ttk.Frame(self, style="Header.TFrame")
         sbar.pack(fill="x", side="bottom")
-        ttk.Label(sbar, textvariable=self.status, style="Status.TLabel", anchor="e").pack(side="right", fill="x", expand=True)
-        ttk.Label(sbar, text=f"© {DEV_NAME}  •  v{APP_VERSION}", style="Status.TLabel").pack(side="left")
+        ttk.Label(sbar, textvariable=self.status, style="Status.TLabel", anchor=AE).pack(side=SR, fill="x", expand=True)
+        ttk.Label(sbar, text=f"© {DEV_NAME}  •  v{APP_VERSION}", style="Status.TLabel").pack(side=SL)
 
     # ---------- إعادة بناء الواجهة (بعد تغيير الثيم أو الخط)
     def rebuild_ui(self):
@@ -923,10 +1455,10 @@ class App(tk.Tk):
 
     # ---------- المعاينة
     def _build_preview(self, p):
-        ttk.Label(p, text="المعاينة", style="Title.TLabel", background=PANEL).pack(anchor="e")
-        self.pv_name = ttk.Label(p, text="اختار ملف لتشوف معاينته", style="Panel.TLabel",
-                                 font=F(11, True), wraplength=300, justify="right")
-        self.pv_name.pack(anchor="e", pady=(6, 8), fill="x")
+        ttk.Label(p, text=T("المعاينة"), style="Title.TLabel", background=PANEL).pack(anchor=AE)
+        self.pv_name = ttk.Label(p, text=T("اختار ملف لتشوف معاينته"), style="Panel.TLabel",
+                                 font=F(11, True), wraplength=300, justify=JR)
+        self.pv_name.pack(anchor=AE, pady=(6, 8), fill="x")
         self.pv_box = tk.Frame(p, bg=FIELD, height=260, highlightthickness=1, highlightbackground=LINE)
         self.pv_box.pack(fill="x")
         self.pv_box.pack_propagate(False)
@@ -938,10 +1470,10 @@ class App(tk.Tk):
         self.pv_info.pack(fill="x", pady=(10, 6))
         btns = ttk.Frame(p, style="Panel.TFrame")
         btns.pack(fill="x", pady=(4, 0))
-        self.pv_open = ttk.Button(btns, text="▶ فتح الملف", command=self.open_selected)
-        self.pv_open.pack(side="right", padx=2)
-        self.pv_reveal = ttk.Button(btns, text="📂 مكانه", command=self.reveal_selected)
-        self.pv_reveal.pack(side="right", padx=2)
+        self.pv_open = ttk.Button(btns, text=T("▶ فتح الملف"), command=self.open_selected)
+        self.pv_open.pack(side=SR, padx=2)
+        self.pv_reveal = ttk.Button(btns, text=T("📂 مكانه"), command=self.reveal_selected)
+        self.pv_reveal.pack(side=SR, padx=2)
         self.show_preview(None)
 
     def _pv_mode(self, mode):
@@ -956,13 +1488,13 @@ class App(tk.Tk):
         self._pv_mode("img")
         self.pv_img.config(image="", text="")
         if f is None:
-            self.pv_name.config(text=f"تم تحديد {count} ملف" if count > 1 else "اختار ملف لتشوف معاينته")
+            self.pv_name.config(text=T("تم تحديد {0} ملف").format(count) if count > 1 else T("اختار ملف لتشوف معاينته"))
             self.pv_img.config(text="🗂" if count > 1 else "👁")
             for b in (self.pv_open, self.pv_reveal):
                 b.state(["disabled"])
             if count > 1:
                 total = sum(x["size"] for x in self.selected_files())
-                self._info_row("الحجم الكلي", human(total))
+                self._info_row(T("الحجم الكلي"), human(total))
             return
         for b in (self.pv_open, self.pv_reveal):
             b.state(["!disabled"])
@@ -970,7 +1502,7 @@ class App(tk.Tk):
         ext = f["ext"].lower()
         extra = None
         shown = False
-        if f["cat"] == "صور" or ext in IMAGE_EXTS:
+        if f["cat"] == T("صور") or ext in IMAGE_EXTS:
             self.pv_box.update_idletasks()
             bw = max(160, self.pv_box.winfo_width() - 12)
             img, extra = load_thumb(f["path"], bw, 246)
@@ -993,26 +1525,26 @@ class App(tk.Tk):
                 pass
         if not shown:
             self.pv_img.config(text=ICONS.get(f["cat"], "📄"))
-        self._info_row("النوع", f"{f['cat']}  •  {f['ext']}")
-        self._info_row("الحجم", f"{human(f['size'])}  ({f['size']:,} بايت)")
+        self._info_row(T("النوع"), f"{f['cat']}  •  {f['ext']}")
+        self._info_row(T("الحجم"), T("{0}  ({1:,} بايت)").format(human(f['size']), f['size']))
         if extra:
-            self._info_row("الأبعاد", extra)
-        self._info_row("آخر تعديل", datetime.fromtimestamp(f["mtime"]).strftime("%Y-%m-%d  %H:%M"))
+            self._info_row(T("الأبعاد"), extra)
+        self._info_row(T("آخر تعديل"), datetime.fromtimestamp(f["mtime"]).strftime("%Y-%m-%d  %H:%M"))
         try:
-            self._info_row("تاريخ الإنشاء", datetime.fromtimestamp(os.path.getctime(f["path"])).strftime("%Y-%m-%d  %H:%M"))
+            self._info_row(T("تاريخ الإنشاء"), datetime.fromtimestamp(os.path.getctime(f["path"])).strftime("%Y-%m-%d  %H:%M"))
         except OSError:
             pass
-        self._info_row("المكان", os.path.dirname(f["path"]))
+        self._info_row(T("المكان"), os.path.dirname(f["path"]))
 
     def _info_row(self, k, v):
         r = ttk.Frame(self.pv_info, style="Panel.TFrame")
         r.pack(fill="x", pady=2)
-        ttk.Label(r, text=k, style="PanelMuted.TLabel", width=13, anchor="e").pack(side="right")
-        ttk.Label(r, text=v, style="Panel.TLabel", wraplength=220, justify="right", anchor="e").pack(side="right", fill="x", expand=True)
+        ttk.Label(r, text=k, style="PanelMuted.TLabel", width=13, anchor=AE).pack(side=SR)
+        ttk.Label(r, text=v, style="Panel.TLabel", wraplength=220, justify=JR, anchor=AE).pack(side=SR, fill="x", expand=True)
 
     # ---------- الفحص
     def choose_folder(self):
-        d = filedialog.askdirectory(title="اختر المجلد", initialdir=self.root_dir.get() or None)
+        d = filedialog.askdirectory(title=T("اختر المجلد"), initialdir=self.root_dir.get() or None)
         if d:
             self.root_dir.set(os.path.normpath(d))
             self.start_scan()
@@ -1020,7 +1552,7 @@ class App(tk.Tk):
     def start_scan(self):
         root = self.root_dir.get().strip()
         if not root or not os.path.isdir(root):
-            messagebox.showwarning(APP_TITLE, "اختر مجلداً صحيحاً أولاً.")
+            messagebox.showwarning(APP_TITLE, T("اختر مجلداً صحيحاً أولاً."))
             return
         S["last_folder"] = root
         S["recent"] = [root] + [r for r in S["recent"] if os.path.normcase(r) != os.path.normcase(root)][:9]
@@ -1028,11 +1560,11 @@ class App(tk.Tk):
             self.folder_cb.configure(values=S["recent"])
         except tk.TclError:
             pass
-        self.status.set("جارٍ الفحص...")
+        self.status.set(T("جارٍ الفحص..."))
         self.config(cursor="watch")
 
         def prog(n):
-            self.after(0, lambda: self.status.set(f"جارٍ الفحص... {n} ملف"))
+            self.after(0, lambda: self.status.set(T("جارٍ الفحص... {0} ملف").format(n)))
 
         def work():
             files = scan_folder(root, False, prog)  # المجلد المحدد فقط، بدون المجلدات الفرعية
@@ -1059,7 +1591,7 @@ class App(tk.Tk):
             e = c["ext"].setdefault(f["ext"], [0, 0])
             e[0] += 1
             e[1] += f["size"]
-        self.summary.insert("", "end", iid="all", text="📁 الكل", tags=("cat",),
+        self.summary.insert("", "end", iid="all", text=T("📁 الكل"), tags=("cat",),
                             values=(len(self.files), human(total_size), "100%"))
         for cat, c in sorted(cats.items(), key=lambda kv: -kv[1]["s"]):
             cid = f"cat::{cat}"
@@ -1110,8 +1642,8 @@ class App(tk.Tk):
                 f["name"], f["ext"], human(f["size"]),
                 datetime.fromtimestamp(f["mtime"]).strftime("%Y-%m-%d %H:%M"), rel))
 
-        label = "الكل" if not self.sel_cat else self.sel_cat + (f" ← {self.sel_ext}" if self.sel_ext else "")
-        self.filter_lbl.config(text=f"المعروض: {label}")
+        label = T("الكل") if not self.sel_cat else self.sel_cat + (f" ← {self.sel_ext}" if self.sel_ext else "")
+        self.filter_lbl.config(text=T("المعروض: {0}").format(label))
         for c in ("name", "ext", "size", "date", "folder"):
             t = self.table.heading(c, "text").rstrip(" ▲▼")
             self.table.heading(c, text=t + ((" ▼" if self.sort_desc else " ▲") if c == self.sort_key else ""))
@@ -1127,11 +1659,11 @@ class App(tk.Tk):
     def update_status(self):
         n, s = len(self.filtered), sum(f["size"] for f in self.filtered)
         sel = self.selected_files()
-        txt = f"المعروض: {n} ملف ({human(s)})"
+        txt = T("المعروض: {0} ملف ({1})").format(n, human(s))
         if n > int(S["max_rows"]):
-            txt += f"  —  الجدول يعرض أول {S['max_rows']} فقط، لكن «نقل كل المعروض» يشمل الكل"
+            txt += T("  —  الجدول يعرض أول {0} فقط، لكن «نقل كل المعروض» يشمل الكل").format(S['max_rows'])
         if sel:
-            txt += f"   |   المحدد: {len(sel)} ملف ({human(sum(f['size'] for f in sel))})"
+            txt += T("   |   المحدد: {0} ملف ({1})").format(len(sel), human(sum(f['size'] for f in sel)))
         self.status.set(txt)
 
     def selected_files(self):
@@ -1157,15 +1689,15 @@ class App(tk.Tk):
 
     def _move_to_folder(self, files):
         if not files:
-            messagebox.showinfo(APP_TITLE, "ما في ملفات محددة.")
+            messagebox.showinfo(APP_TITLE, T("ما في ملفات محددة."))
             return
-        dest = filedialog.askdirectory(title="اختر المجلد الذي سيتم النقل إليه",
+        dest = filedialog.askdirectory(title=T("اختر المجلد الذي سيتم النقل إليه"),
                                        initialdir=self.root_dir.get() or None)
         if not dest:
             return
         dest = os.path.normpath(dest)
         if S["confirm"] and not messagebox.askyesno(
-                APP_TITLE, f"نقل {len(files)} ملف ({human(sum(f['size'] for f in files))})\nإلى:\n{dest} ؟"):
+                APP_TITLE, T("نقل {0} ملف ({1})\nإلى:\n{2} ؟").format(len(files), human(sum(f['size'] for f in files)), dest)):
             return
         plan = [(f["path"], dest) for f in files
                 if os.path.normcase(os.path.dirname(f["path"])) != os.path.normcase(dest)]
@@ -1179,14 +1711,14 @@ class App(tk.Tk):
 
     def run_plan(self, plan):
         if not plan:
-            messagebox.showinfo(APP_TITLE, "كل الملفات بمكانها الصحيح، ما في شي ينقل.")
+            messagebox.showinfo(APP_TITLE, T("كل الملفات بمكانها الصحيح، ما في شي ينقل."))
             return
         moved, created, errors = execute_moves(plan)
         if moved:
-            save_undo(moved, created, "نقل")
-        msg = f"تم نقل {len(moved)} ملف ✅"
+            save_undo(moved, created, T("نقل"))
+        msg = T("تم نقل {0} ملف ✅").format(len(moved))
         if errors:
-            msg += f"\n\nفشل نقل {len(errors)} ملف:\n" + "\n".join(errors[:10])
+            msg += T("\n\nفشل نقل {0} ملف:\n").format(len(errors)) + "\n".join(errors[:10])
         messagebox.showinfo(APP_TITLE, msg)
         self._update_undo_btn()
         self.start_scan()
@@ -1194,12 +1726,12 @@ class App(tk.Tk):
     def do_undo(self):
         data = load_undo()
         if not data:
-            messagebox.showinfo(APP_TITLE, "لا توجد عملية للتراجع عنها.")
+            messagebox.showinfo(APP_TITLE, T("لا توجد عملية للتراجع عنها."))
             return
-        if not messagebox.askyesno(APP_TITLE, f"التراجع عن آخر عملية «{data.get('label', 'نقل')}»؟\n{len(data['moved'])} ملف بيرجعوا متل ما كانوا.\n(العملية من: {data['time'].replace('T', '  ')})"):
+        if not messagebox.askyesno(APP_TITLE, T("التراجع عن آخر عملية «{0}»؟\n{1} ملف بيرجعوا متل ما كانوا.\n(العملية من: {2})").format(data.get('label', 'نقل'), len(data['moved']), data['time'].replace('T', '  '))):
             return
         ok, errors = undo_last()
-        msg = f"تم إرجاع {ok} ملف ✅"
+        msg = T("تم إرجاع {0} ملف ✅").format(ok)
         if errors:
             msg += "\n\n" + "\n".join(errors[:10])
         messagebox.showinfo(APP_TITLE, msg)
@@ -1210,7 +1742,21 @@ class App(tk.Tk):
     def _update_undo_btn(self):
         n = undo_count()
         self.undo_btn.state(["!disabled"] if n else ["disabled"])
-        self.undo_btn.config(text=f"↩ تراجع (Ctrl+Z)" + (f"  [{n}]" if n else ""))
+        self.undo_btn.config(text=T("↩ تراجع (Ctrl+Z)").format() + (f"  [{n}]" if n else ""))
+
+    def restart_app(self):
+        S["recursive"] = self.recursive.get()
+        S.save()
+        env = os.environ.copy()
+        env["PYINSTALLER_RESET_ENVIRONMENT"] = "1"
+        try:
+            if getattr(sys, "frozen", False):
+                subprocess.Popen([sys.executable], env=env)
+            else:
+                subprocess.Popen([sys.executable, os.path.abspath(sys.argv[0])], env=env)
+        except Exception:  # noqa
+            pass
+        self.destroy()
 
     def on_close(self):
         S["recursive"] = self.recursive.get()
@@ -1231,7 +1777,7 @@ class App(tk.Tk):
 
     # ---------- حول
     def about(self):
-        win = self._dialog("حول", "420x430")
+        win = self._dialog(T("حول"), "420x430")
         win.resizable(False, False)
         frm = ttk.Frame(win, padding=20)
         frm.pack(fill="both", expand=True)
@@ -1239,17 +1785,17 @@ class App(tk.Tk):
             ttk.Label(frm, image=self.img_avatar).pack(pady=(0, 10))
         if self.img_logo:
             ttk.Label(frm, image=self.img_logo).pack()
-        ttk.Label(frm, text=f"{APP_NAME}  •  الإصدار {APP_VERSION}", font=F(12, True)).pack(pady=(10, 2))
-        ttk.Label(frm, text=f"تطوير وتصميم: {DEV_NAME}", style="Muted.TLabel").pack()
+        ttk.Label(frm, text=T("{0}  •  الإصدار {1}").format(APP_NAME, APP_VERSION), font=F(12, True)).pack(pady=(10, 2))
+        ttk.Label(frm, text=T("تطوير وتصميم: {0}").format(DEV_NAME), style="Muted.TLabel").pack()
         link = ttk.Label(frm, text=DEV_LINK.replace("https://", ""), foreground=ACCENT, cursor="hand2",
                          font=F(10, extra="underline"))
         link.pack(pady=(6, 12))
         link.bind("<Button-1>", lambda e: webbrowser.open(DEV_LINK))
-        ttk.Button(frm, text="إغلاق", command=win.destroy).pack()
+        ttk.Button(frm, text=T("إغلاق"), command=win.destroy).pack()
 
     # ---------- الإعدادات
     def settings_dialog(self):
-        win = self._dialog("الإعدادات", "700x600")
+        win = self._dialog(T("الإعدادات"), "720x680")
         cats = dict(S["categories"])
 
         nb = ttk.Notebook(win)
@@ -1257,20 +1803,20 @@ class App(tk.Tk):
 
         # --- تبويب الأنواع
         t1 = ttk.Frame(nb, padding=10)
-        nb.add(t1, text="الأنواع واللواحق")
-        ttk.Label(t1, text="اختار نوع من القائمة وعدّل لواحقه (افصل بينها بمسافة). الملفات اللي لاحقتها مو موجودة بتروح لـ «أخرى».",
-                  style="Muted.TLabel", wraplength=620, justify="right").pack(anchor="e", pady=(0, 8))
+        nb.add(t1, text=T("الأنواع واللواحق"))
+        ttk.Label(t1, text=T("اختار نوع من القائمة وعدّل لواحقه (افصل بينها بمسافة). الملفات اللي لاحقتها مو موجودة بتروح لـ «أخرى»."),
+                  style="Muted.TLabel", wraplength=620, justify=JR).pack(anchor=AE, pady=(0, 8))
         row = ttk.Frame(t1)
         row.pack(fill="both", expand=True)
-        lb = dark_listbox(row, width=18, justify="right", exportselection=False)
-        lb.pack(side="right", fill="y")
+        lb = dark_listbox(row, width=18, justify=JR, exportselection=False)
+        lb.pack(side=SR, fill="y")
         edit = ttk.Frame(row, padding=(0, 0, 10, 0))
-        edit.pack(side="right", fill="both", expand=True)
+        edit.pack(side=SR, fill="both", expand=True)
 
         name_var = tk.StringVar()
-        ttk.Label(edit, text="اسم النوع (هو اسم المجلد وقت التنظيم):").pack(anchor="e")
-        ttk.Entry(edit, textvariable=name_var, justify="right").pack(fill="x", pady=(2, 8))
-        ttk.Label(edit, text="اللواحق:").pack(anchor="e")
+        ttk.Label(edit, text=T("اسم النوع (هو اسم المجلد وقت التنظيم):")).pack(anchor=AE)
+        ttk.Entry(edit, textvariable=name_var, justify=JR).pack(fill="x", pady=(2, 8))
+        ttk.Label(edit, text=T("اللواحق:")).pack(anchor=AE)
         ext_txt = tk.Text(edit, height=8, bg=FIELD, fg=FG, insertbackground=FG, relief="flat",
                           highlightthickness=1, highlightbackground=LINE, highlightcolor=ACCENT, wrap="word")
         ext_txt.pack(fill="both", expand=True, pady=(2, 8))
@@ -1318,22 +1864,22 @@ class App(tk.Tk):
 
         def add_cat():
             store()
-            n, i = "نوع جديد", 1
+            n, i = T("نوع جديد"), 1
             while n in cats:
                 i += 1
-                n = f"نوع جديد {i}"
+                n = T("نوع جديد {0}").format(i)
             cats[n] = ""
             fill_list(select=n)
 
         def del_cat():
             cur = state["cur"]
-            if cur and messagebox.askyesno(APP_TITLE, f"حذف النوع «{cur}»؟", parent=win):
+            if cur and messagebox.askyesno(APP_TITLE, T("حذف النوع «{0}»؟").format(cur), parent=win):
                 cats.pop(cur, None)
                 state["cur"] = None
                 fill_list()
 
         def reset_cats():
-            if messagebox.askyesno(APP_TITLE, "إرجاع الأنواع للوضع الافتراضي؟", parent=win):
+            if messagebox.askyesno(APP_TITLE, T("إرجاع الأنواع للوضع الافتراضي؟"), parent=win):
                 cats.clear()
                 cats.update(DEFAULT_CATEGORIES)
                 state["cur"] = None
@@ -1341,13 +1887,13 @@ class App(tk.Tk):
 
         b = ttk.Frame(edit)
         b.pack(fill="x")
-        ttk.Button(b, text="➕ نوع جديد", command=add_cat).pack(side="right", padx=2)
-        ttk.Button(b, text="🗑 حذف النوع", command=del_cat).pack(side="right", padx=2)
-        ttk.Button(b, text="↺ الافتراضي", command=reset_cats).pack(side="left", padx=2)
+        ttk.Button(b, text=T("➕ نوع جديد"), command=add_cat).pack(side=SR, padx=2)
+        ttk.Button(b, text=T("🗑 حذف النوع"), command=del_cat).pack(side=SR, padx=2)
+        ttk.Button(b, text=T("↺ الافتراضي"), command=reset_cats).pack(side=SL, padx=2)
 
         # --- تبويب عام
         t2 = ttk.Frame(nb, padding=14)
-        nb.add(t2, text="خيارات عامة")
+        nb.add(t2, text=T("خيارات عامة"))
         v_rec = tk.BooleanVar(value=self.recursive.get())
         v_hidden = tk.BooleanVar(value=S["skip_hidden"])
         v_confirm = tk.BooleanVar(value=S["confirm"])
@@ -1355,58 +1901,65 @@ class App(tk.Tk):
         v_other = tk.StringVar(value=S["other_name"])
         v_mode = tk.StringVar(value=S["default_mode"])
 
-        ttk.Checkbutton(t2, text="تجاهل الملفات والمجلدات المخفية", variable=v_hidden).pack(anchor="e", pady=3)
-        ttk.Checkbutton(t2, text="اسألني للتأكيد قبل النقل", variable=v_confirm).pack(anchor="e", pady=3)
+        ttk.Checkbutton(t2, text=T("تجاهل الملفات والمجلدات المخفية"), variable=v_hidden).pack(anchor=AE, pady=3)
+        ttk.Checkbutton(t2, text=T("اسألني للتأكيد قبل النقل"), variable=v_confirm).pack(anchor=AE, pady=3)
         r = ttk.Frame(t2)
-        r.pack(anchor="e", pady=8)
-        ttk.Label(r, text="أقصى عدد ملفات يُعرض بالجدول:").pack(side="right")
-        ttk.Spinbox(r, from_=500, to=100000, increment=500, textvariable=v_rows, width=8).pack(side="right", padx=6)
+        r.pack(anchor=AE, pady=8)
+        ttk.Label(r, text=T("أقصى عدد ملفات يُعرض بالجدول:")).pack(side=SR)
+        ttk.Spinbox(r, from_=500, to=100000, increment=500, textvariable=v_rows, width=8).pack(side=SR, padx=6)
         r2 = ttk.Frame(t2)
-        r2.pack(anchor="e", pady=4)
-        ttk.Label(r2, text="اسم مجلد الملفات غير المصنفة:").pack(side="right")
-        ttk.Entry(r2, textvariable=v_other, width=14, justify="right").pack(side="right", padx=6)
-        ttk.Label(t2, text="طريقة التنظيم الافتراضية:", style="Title.TLabel").pack(anchor="e", pady=(12, 4))
+        r2.pack(anchor=AE, pady=4)
+        ttk.Label(r2, text=T("اسم مجلد الملفات غير المصنفة:")).pack(side=SR)
+        ttk.Entry(r2, textvariable=v_other, width=14, justify=JR).pack(side=SR, padx=6)
+        ttk.Label(t2, text=T("طريقة التنظيم الافتراضية:"), style="Title.TLabel").pack(anchor=AE, pady=(12, 4))
         for val, txt in ORGANIZE_MODES:
-            ttk.Radiobutton(t2, text=txt, value=val, variable=v_mode).pack(anchor="e", padx=10)
+            ttk.Radiobutton(t2, text=txt, value=val, variable=v_mode).pack(anchor=AE, padx=10)
 
         # --- تبويب المظهر
         t3 = ttk.Frame(nb, padding=14)
-        nb.add(t3, text="المظهر والخط")
+        nb.add(t3, text=T("المظهر والخط"))
         v_theme = tk.StringVar(value=S["theme"])
         v_font = tk.StringVar(value=S["font"])
         v_prev = tk.BooleanVar(value=S["show_preview"])
-        ttk.Label(t3, text="الألوان:", style="Title.TLabel").pack(anchor="e")
+        ttk.Label(t3, text=T("الألوان:"), style="Title.TLabel").pack(anchor=AE)
         grid = ttk.Frame(t3)
-        grid.pack(anchor="e", pady=(4, 12))
+        grid.pack(anchor=AE, pady=(4, 12))
         for i, (name, vals) in enumerate(THEMES.items()):
             th = dict(zip(_K, vals))
             cell = ttk.Frame(grid, padding=4)
-            cell.grid(row=i // 3, column=2 - i % 3, padx=4, pady=4, sticky="e")
+            cell.grid(row=i // 3, column=(2 - i % 3) if RTL else i % 3, padx=4, pady=4, sticky=AE)
             sw = tk.Frame(cell, bg=th["BG"], width=120, height=34, highlightthickness=2,
                           highlightbackground=th["LINE"])
             sw.pack()
             sw.pack_propagate(False)
-            tk.Frame(sw, bg=th["ACCENT"], width=30).pack(side="right", fill="y")
-            tk.Frame(sw, bg=th["PANEL"], width=40).pack(side="right", fill="y")
-            ttk.Radiobutton(cell, text=name, value=name, variable=v_theme).pack(anchor="e")
-        ttk.Label(t3, text="الخط:", style="Title.TLabel").pack(anchor="e")
+            tk.Frame(sw, bg=th["ACCENT"], width=30).pack(side=SR, fill="y")
+            tk.Frame(sw, bg=th["PANEL"], width=40).pack(side=SR, fill="y")
+            ttk.Radiobutton(cell, text=T(name), value=name, variable=v_theme).pack(anchor=AE)
+        ttk.Label(t3, text=T("الخط:"), style="Title.TLabel").pack(anchor=AE)
         from tkinter import font as tkfont
         fams = sorted(f for f in set(tkfont.families(self)) if not f.startswith("@"))
         fr = ttk.Frame(t3)
-        fr.pack(anchor="e", fill="x", pady=4)
-        ttk.Combobox(fr, textvariable=v_font, values=[PREFERRED_FONT] + fams, width=28).pack(side="right")
-        sample = ttk.Label(t3, text="", style="Muted.TLabel", wraplength=640, justify="right")
-        sample.pack(anchor="e", pady=4)
+        fr.pack(anchor=AE, fill="x", pady=4)
+        ttk.Combobox(fr, textvariable=v_font, values=[PREFERRED_FONT] + fams, width=28).pack(side=SR)
+        sample = ttk.Label(t3, text="", style="Muted.TLabel", wraplength=640, justify=JR)
+        sample.pack(anchor=AE, pady=4)
 
         def upd_sample(*_):
             fam = v_font.get()
             ok = any(x == fam or x.startswith(fam + " ") for x in fams)
             sample.config(font=(fam, 12) if ok else F(12),
-                          text="نموذج: منظّم الملفات من GraphicWO  123" if ok else
-                          f"الخط «{fam}» مو منزّل على الجهاز — رح يستخدم {FONT['regular']} لحد ما تنزّله أو تحطّه بمجلد fonts")
+                          text=T("نموذج: منظّم الملفات من GraphicWO  123") if ok else
+                          T("الخط «{0}» مو منزّل على الجهاز — رح يستخدم {1} لحد ما تنزّله أو تحطّه بمجلد fonts").format(fam, FONT['regular']))
         v_font.trace_add("write", upd_sample)
         upd_sample()
-        ttk.Checkbutton(t3, text="إظهار لوحة المعاينة", variable=v_prev).pack(anchor="e", pady=(12, 0))
+        ttk.Checkbutton(t3, text=T("إظهار لوحة المعاينة"), variable=v_prev).pack(anchor=AE, pady=(12, 0))
+        LANG_NAMES = {"ar": "العربية", "en": "English", "fr": "Français"}
+        lr = ttk.Frame(t3)
+        lr.pack(anchor=AE, pady=(14, 0))
+        ttk.Label(lr, text=T("اللغة:"), style="Title.TLabel").pack(side=SR)
+        v_lang = tk.StringVar(value=LANG_NAMES[LANG])
+        ttk.Combobox(lr, textvariable=v_lang, state="readonly", width=12,
+                     values=list(LANG_NAMES.values())).pack(side=SR, padx=8)
 
         # --- حفظ
         btns = ttk.Frame(win, padding=(10, 0, 10, 10))
@@ -1421,7 +1974,7 @@ class App(tk.Tk):
                 S["max_rows"] = max(100, int(v_rows.get()))
             except (tk.TclError, ValueError):
                 pass
-            S["other_name"] = v_other.get().strip() or "أخرى"
+            S["other_name"] = v_other.get().strip() or T("أخرى")
             S["default_mode"] = v_mode.get()
             S["recursive"] = v_rec.get()
             self.recursive.set(v_rec.get())
@@ -1429,15 +1982,21 @@ class App(tk.Tk):
             S["theme"] = v_theme.get()
             S["font"] = v_font.get().strip() or PREFERRED_FONT
             S["show_preview"] = v_prev.get()
+            new_lang = {v: k for k, v in LANG_NAMES.items()}.get(v_lang.get(), LANG)
+            S["lang"] = new_lang
             S.save()
             win.destroy()
+            if new_lang != LANG:
+                messagebox.showinfo(APP_TITLE, T("رح يعيد البرنامج التشغيل لتتغيّر اللغة."))
+                self.restart_app()
+                return
             if look != (S["theme"], S["font"], S["show_preview"]):
                 self.rebuild_ui()
             if self.files and os.path.isdir(self.root_dir.get()):
                 self.start_scan()
 
-        ttk.Button(btns, text="💾 حفظ", style="Accent.TButton", command=save).pack(side="right")
-        ttk.Button(btns, text="إلغاء", command=win.destroy).pack(side="left")
+        ttk.Button(btns, text=T("💾 حفظ"), style="Accent.TButton", command=save).pack(side=SR)
+        ttk.Button(btns, text=T("إلغاء"), command=win.destroy).pack(side=SL)
         fill_list()
 
     # ---------- أدوات سريعة
@@ -1449,20 +2008,20 @@ class App(tk.Tk):
         if sel:
             self.clipboard_clear()
             self.clipboard_append("\n".join(f["path"] for f in sel))
-            self.status.set(f"تم نسخ مسار {len(sel)} ملف 📋")
+            self.status.set(T("تم نسخ مسار {0} ملف 📋").format(len(sel)))
 
     def trash_selected(self, files=None, parent=None):
         files = files if files is not None else self.selected_files()
         if not files:
-            messagebox.showinfo(APP_TITLE, "حدد الملفات اللي بدك تحذفها.", parent=parent or self)
+            messagebox.showinfo(APP_TITLE, T("حدد الملفات اللي بدك تحذفها."), parent=parent or self)
             return False
-        if not messagebox.askyesno(APP_TITLE, f"نقل {len(files)} ملف ({human(sum(f['size'] for f in files))}) لسلة المحذوفات؟\nفيك ترجعهن من سلة المحذوفات بالويندوز.",
+        if not messagebox.askyesno(APP_TITLE, T("نقل {0} ملف ({1}) لسلة المحذوفات؟\nفيك ترجعهن من سلة المحذوفات بالويندوز.").format(len(files), human(sum(f['size'] for f in files))),
                                    icon="warning", parent=parent or self):
             return False
         ok, errors = send_to_trash([f["path"] for f in files])
-        msg = f"انحذف {ok} ملف لسلة المحذوفات 🗑"
+        msg = T("انحذف {0} ملف لسلة المحذوفات 🗑").format(ok)
         if errors:
-            msg += f"\n\nما انحذفوا ({len(errors)}):\n" + "\n".join(errors[:10])
+            msg += T("\n\nما انحذفوا ({0}):\n").format(len(errors)) + "\n".join(errors[:10])
         messagebox.showinfo(APP_TITLE, msg, parent=parent or self)
         self.start_scan()
         return True
@@ -1471,10 +2030,10 @@ class App(tk.Tk):
     def rename_dialog(self):
         files = self.selected_files() or list(self.filtered)
         if not files:
-            messagebox.showwarning(APP_TITLE, "افحص مجلداً أولاً.")
+            messagebox.showwarning(APP_TITLE, T("افحص مجلداً أولاً."))
             return
-        src_label = "المحددة" if self.selected_files() else "المعروضة"
-        win = self._dialog("إعادة تسمية جماعية", "900x640")
+        src_label = T("المحددة") if self.selected_files() else T("المعروضة")
+        win = self._dialog(T("إعادة تسمية جماعية"), "900x640")
         pattern = tk.StringVar(value="{name}")
         find = tk.StringVar()
         replace = tk.StringVar()
@@ -1482,55 +2041,55 @@ class App(tk.Tk):
         digits = tk.IntVar(value=3)
         case = tk.StringVar(value="keep")
         lower_ext = tk.BooleanVar(value=False)
-        order = tk.StringVar(value="الترتيب الحالي")
+        order = tk.StringVar(value=T("الترتيب الحالي"))
 
         frm = ttk.Frame(win, padding=12)
         frm.pack(fill="both", expand=True)
-        ttk.Label(frm, text=f"إعادة تسمية {len(files)} ملف ({src_label})", style="Title.TLabel").pack(anchor="e")
+        ttk.Label(frm, text=T("إعادة تسمية {0} ملف ({1})").format(len(files), src_label), style="Title.TLabel").pack(anchor=AE)
         r1 = ttk.Frame(frm)
         r1.pack(fill="x", pady=(8, 2))
-        ttk.Label(r1, text="شكل الاسم الجديد:").pack(side="right")
+        ttk.Label(r1, text=T("شكل الاسم الجديد:")).pack(side=SR)
         ent = ttk.Entry(r1, textvariable=pattern, justify="left", font=F(11))
-        ent.pack(side="right", fill="x", expand=True, padx=6)
+        ent.pack(side=SR, fill="x", expand=True, padx=6)
         r1b = ttk.Frame(frm)
         r1b.pack(fill="x")
-        ttk.Label(r1b, text="ضيف:", style="Muted.TLabel").pack(side="right")
-        presets = [("الاسم", "{name}"), ("رقم", "{n}"), ("تاريخ التصوير/التعديل", "{date}"),
-                   ("الوقت", "{time}"), ("النوع", "{cat}"), ("اللاحقة", "{ext}")]
+        ttk.Label(r1b, text=T("ضيف:"), style="Muted.TLabel").pack(side=SR)
+        presets = [(T("الاسم"), "{name}"), (T("رقم"), "{n}"), (T("تاريخ التصوير/التعديل"), "{date}"),
+                   (T("الوقت"), "{time}"), (T("النوع"), "{cat}"), (T("اللاحقة"), "{ext}")]
         for t, tok in presets:
-            ttk.Button(r1b, text=t, command=lambda tok=tok: ent.insert("insert", tok)).pack(side="right", padx=2)
+            ttk.Button(r1b, text=t, command=lambda tok=tok: ent.insert("insert", tok)).pack(side=SR, padx=2)
         r1c = ttk.Frame(frm)
         r1c.pack(fill="x", pady=(4, 0))
-        ttk.Label(r1c, text="قوالب جاهزة:", style="Muted.TLabel").pack(side="right")
-        for t, p in (("صور 2025-01-31 001", "{date} {n}"), ("الاسم_001", "{name}_{n}"),
-                     ("رحلة 001", "رحلة {n}"), ("رجوع للاسم", "{name}")):
-            ttk.Button(r1c, text=t, command=lambda p=p: pattern.set(p)).pack(side="right", padx=2)
+        ttk.Label(r1c, text=T("قوالب جاهزة:"), style="Muted.TLabel").pack(side=SR)
+        for t, p in ((T("صور 2025-01-31 001"), "{date} {n}"), (T("الاسم_001"), "{name}_{n}"),
+                     (T("رحلة 001"), T("رحلة {n}")), (T("رجوع للاسم"), "{name}")):
+            ttk.Button(r1c, text=t, command=lambda p=p: pattern.set(p)).pack(side=SR, padx=2)
 
         r2 = ttk.Frame(frm)
         r2.pack(fill="x", pady=8)
-        ttk.Label(r2, text="استبدال:").pack(side="right")
-        ttk.Entry(r2, textvariable=find, width=14, justify="right").pack(side="right", padx=4)
-        ttk.Label(r2, text="بـ").pack(side="right")
-        ttk.Entry(r2, textvariable=replace, width=14, justify="right").pack(side="right", padx=4)
-        ttk.Label(r2, text="   الرقم يبدأ من:").pack(side="right")
-        ttk.Spinbox(r2, from_=0, to=99999, textvariable=start, width=6).pack(side="right", padx=4)
-        ttk.Label(r2, text="خانات:").pack(side="right")
-        ttk.Spinbox(r2, from_=1, to=6, textvariable=digits, width=3).pack(side="right", padx=4)
+        ttk.Label(r2, text=T("استبدال:")).pack(side=SR)
+        ttk.Entry(r2, textvariable=find, width=14, justify=JR).pack(side=SR, padx=4)
+        ttk.Label(r2, text=T("بـ")).pack(side=SR)
+        ttk.Entry(r2, textvariable=replace, width=14, justify=JR).pack(side=SR, padx=4)
+        ttk.Label(r2, text=T("   الرقم يبدأ من:")).pack(side=SR)
+        ttk.Spinbox(r2, from_=0, to=99999, textvariable=start, width=6).pack(side=SR, padx=4)
+        ttk.Label(r2, text=T("خانات:")).pack(side=SR)
+        ttk.Spinbox(r2, from_=1, to=6, textvariable=digits, width=3).pack(side=SR, padx=4)
 
         r3 = ttk.Frame(frm)
         r3.pack(fill="x")
-        ttk.Label(r3, text="الأحرف:").pack(side="right")
-        for t, v in (("متل ما هي", "keep"), ("صغيرة", "lower"), ("كبيرة", "upper"), ("أول حرف كبير", "title")):
-            ttk.Radiobutton(r3, text=t, value=v, variable=case).pack(side="right", padx=3)
-        ttk.Checkbutton(r3, text="لاحقة صغيرة (.JPG ← .jpg)", variable=lower_ext).pack(side="right", padx=10)
-        ttk.Label(r3, text="الترقيم حسب:").pack(side="right", padx=(10, 0))
-        ttk.Combobox(r3, textvariable=order, state="readonly", width=14, justify="right",
-                     values=["الترتيب الحالي", "الاسم", "التاريخ (الأقدم أولاً)", "الحجم"]).pack(side="right", padx=4)
+        ttk.Label(r3, text=T("الأحرف:")).pack(side=SR)
+        for t, v in ((T("متل ما هي"), "keep"), (T("صغيرة"), "lower"), (T("كبيرة"), "upper"), (T("أول حرف كبير"), "title")):
+            ttk.Radiobutton(r3, text=t, value=v, variable=case).pack(side=SR, padx=3)
+        ttk.Checkbutton(r3, text=T("لاحقة صغيرة (.JPG ← .jpg)"), variable=lower_ext).pack(side=SR, padx=10)
+        ttk.Label(r3, text=T("الترقيم حسب:")).pack(side=SR, padx=(10, 0))
+        ttk.Combobox(r3, textvariable=order, state="readonly", width=14, justify=JR,
+                     values=[T("الترتيب الحالي"), T("الاسم"), T("التاريخ (الأقدم أولاً)"), T("الحجم")]).pack(side=SR, padx=4)
 
-        ttk.Label(frm, text="معاينة:", style="Title.TLabel").pack(anchor="e", pady=(10, 2))
+        ttk.Label(frm, text=T("معاينة:"), style="Title.TLabel").pack(anchor=AE, pady=(10, 2))
         tv = ttk.Treeview(frm, columns=("old", "new"), show="headings", height=12)
-        tv.heading("old", text="الاسم الحالي")
-        tv.heading("new", text="الاسم الجديد")
+        tv.heading("old", text=T("الاسم الحالي"))
+        tv.heading("new", text=T("الاسم الجديد"))
         tv.column("old", width=400)
         tv.column("new", width=400)
         tv.tag_configure("same", foreground=MUTED)
@@ -1540,11 +2099,11 @@ class App(tk.Tk):
 
         def ordered():
             o = order.get()
-            if o == "الاسم":
+            if o == T("الاسم"):
                 return sorted(files, key=lambda f: f["name"].lower())
-            if o.startswith("التاريخ"):
+            if o.startswith(T("التاريخ")):
                 return sorted(files, key=lambda f: f["mtime"])
-            if o == "الحجم":
+            if o == T("الحجم"):
                 return sorted(files, key=lambda f: -f["size"])
             return files
 
@@ -1567,7 +2126,7 @@ class App(tk.Tk):
                 if i < 400:
                     tv.insert("", "end", values=(f["name"], new), tags=(tag,) if tag else ())
             st["plan"] = plan
-            go.config(text=f"✏ تسمية {len(plan)} ملف")
+            go.config(text=T("✏ تسمية {0} ملف").format(len(plan)))
 
         for v in (pattern, find, replace, start, digits, case, lower_ext, order):
             v.trace_add("write", update)
@@ -1575,7 +2134,7 @@ class App(tk.Tk):
         def run():
             if not st["plan"] and not any(t in pattern.get() for t in ("{date}", "{time}")):
                 return
-            if S["confirm"] and not messagebox.askyesno(APP_TITLE, f"إعادة تسمية {len(st['plan']) if len(files) <= 400 else len(files)} ملف؟\n(بتقدر تتراجع بعدين)", parent=win):
+            if S["confirm"] and not messagebox.askyesno(APP_TITLE, T("إعادة تسمية {0} ملف؟\n(بتقدر تتراجع بعدين)").format(len(st['plan']) if len(files) <= 400 else len(files)), parent=win):
                 return
             opts = {"pattern": pattern.get(), "find": find.get(), "replace": replace.get(),
                     "start": int(start.get()), "digits": int(digits.get()), "case": case.get(),
@@ -1606,9 +2165,9 @@ class App(tk.Tk):
                     os.rename(tmp, f["path"])
                     errors.append(f"{f['name']}: {e}")
             if moved:
-                save_undo(moved, [], "إعادة تسمية")
+                save_undo(moved, [], T("إعادة تسمية"))
             win.destroy()
-            msg = f"تمت إعادة تسمية {len(moved)} ملف ✅"
+            msg = T("تمت إعادة تسمية {0} ملف ✅").format(len(moved))
             if errors:
                 msg += "\n\n" + "\n".join(errors[:10])
             messagebox.showinfo(APP_TITLE, msg)
@@ -1617,34 +2176,34 @@ class App(tk.Tk):
 
         btns = ttk.Frame(frm)
         btns.pack(fill="x", pady=(10, 0))
-        go = ttk.Button(btns, text="تسمية", style="Accent.TButton", command=run)
-        go.pack(side="right")
-        ttk.Button(btns, text="إلغاء", command=win.destroy).pack(side="left")
-        ttk.Label(btns, text="{date} بياخد تاريخ التصوير من الكاميرا للصور، وإلا تاريخ التعديل",
-                  style="Muted.TLabel").pack(side="right", padx=12)
+        go = ttk.Button(btns, text=T("تسمية"), style="Accent.TButton", command=run)
+        go.pack(side=SR)
+        ttk.Button(btns, text=T("إلغاء"), command=win.destroy).pack(side=SL)
+        ttk.Label(btns, text=T("{date} بياخد تاريخ التصوير من الكاميرا للصور، وإلا تاريخ التعديل"),
+                  style="Muted.TLabel").pack(side=SR, padx=12)
         update()
         ent.focus_set()
 
     # ---------- الملفات المكررة (تطابق تام)
     def duplicates_dialog(self):
         if not self.files:
-            messagebox.showwarning(APP_TITLE, "افحص مجلداً أولاً.")
+            messagebox.showwarning(APP_TITLE, T("افحص مجلداً أولاً."))
             return
-        win = self._dialog("الملفات المكررة", "980x640")
+        win = self._dialog(T("الملفات المكررة"), "980x640")
         win.grab_release()
-        info = tk.StringVar(value="جارٍ البحث عن الملفات المتطابقة...")
+        info = tk.StringVar(value=T("جارٍ البحث عن الملفات المتطابقة..."))
         top = ttk.Frame(win, padding=10)
         top.pack(fill="x")
-        ttk.Label(top, text="ملفات متطابقة 100% (نفس المحتوى حتى لو الاسم مختلف)", style="Title.TLabel").pack(side="right")
+        ttk.Label(top, text=T("ملفات متطابقة 100% (نفس المحتوى حتى لو الاسم مختلف)"), style="Title.TLabel").pack(side=SR)
         pb = ttk.Progressbar(top, length=220, mode="determinate")
-        pb.pack(side="left")
-        ttk.Label(win, textvariable=info, style="Muted.TLabel", padding=(12, 0)).pack(anchor="e")
+        pb.pack(side=SL)
+        ttk.Label(win, textvariable=info, style="Muted.TLabel", padding=(12, 0)).pack(anchor=AE)
         mid = ttk.Frame(win, padding=(10, 6))
         mid.pack(fill="both", expand=True)
         tv = ttk.Treeview(mid, columns=("size", "date", "keep"), selectmode="extended")
-        tv.heading("#0", text="الملف")
-        tv.heading("size", text="الحجم")
-        tv.heading("date", text="آخر تعديل")
+        tv.heading("#0", text=T("الملف"))
+        tv.heading("size", text=T("الحجم"))
+        tv.heading("date", text=T("آخر تعديل"))
         tv.heading("keep", text="")
         tv.column("#0", width=420)
         tv.column("size", width=100, anchor="center")
@@ -1654,7 +2213,7 @@ class App(tk.Tk):
         tv.tag_configure("keep", foreground=MUTED)
         sb = ttk.Scrollbar(mid, command=tv.yview)
         tv.configure(yscrollcommand=sb.set)
-        sb.pack(side="right", fill="y")
+        sb.pack(side=SR, fill="y")
         tv.pack(fill="both", expand=True)
         st = {"groups": [], "map": {}}
         tv.bind("<Double-1>", lambda e: [open_path(st["map"][i]["path"]) for i in tv.selection()[:1] if i in st["map"]])
@@ -1668,17 +2227,17 @@ class App(tk.Tk):
             waste = 0
             for gi, g in enumerate(st["groups"]):
                 waste += g[0]["size"] * (len(g) - 1)
-                gid = tv.insert("", "end", text=f"مجموعة {gi + 1} — {len(g)} نسخ  ({human(g[0]['size'])} للنسخة)",
+                gid = tv.insert("", "end", text=T("مجموعة {0} — {1} نسخ  ({2} للنسخة)").format(gi + 1, len(g), human(g[0]['size'])),
                                 open=True, tags=("grp",))
                 for k, f in enumerate(g):
                     iid = tv.insert(gid, "end", text=f["name"], values=(
                         human(f["size"]), datetime.fromtimestamp(f["mtime"]).strftime("%Y-%m-%d %H:%M"),
-                        "⭐ الأصلية (الأقدم)" if k == 0 else "نسخة"), tags=("keep",) if k == 0 else ())
+                        T("⭐ الأصلية (الأقدم)") if k == 0 else T("نسخة")), tags=("keep",) if k == 0 else ())
                     st["map"][iid] = f
             if not st["groups"]:
-                info.set("ما في ملفات مكررة بهالمجلد 👌")
+                info.set(T("ما في ملفات مكررة بهالمجلد 👌"))
             else:
-                info.set(f"{len(st['groups'])} مجموعة  •  {sum(len(g) - 1 for g in st['groups'])} نسخة زايدة  •  بتوفّر {human(waste)}")
+                info.set(T("{0} مجموعة  •  {1} نسخة زايدة  •  بتوفّر {2}").format(len(st['groups']), sum(len(g) - 1 for g in st['groups']), human(waste)))
 
         def auto_select():
             tv.selection_set([iid for iid, f in st["map"].items()
@@ -1687,10 +2246,10 @@ class App(tk.Tk):
         def move_sel():
             fs = sel_files()
             if not fs:
-                messagebox.showinfo(APP_TITLE, "حدد النسخ أولاً (أو اكبس «حدد النسخ الزايدة»).", parent=win)
+                messagebox.showinfo(APP_TITLE, T("حدد النسخ أولاً (أو اكبس «حدد النسخ الزايدة»)."), parent=win)
                 return
-            dest = os.path.join(self.root_dir.get(), "ملفات مكررة")
-            if S["confirm"] and not messagebox.askyesno(APP_TITLE, f"نقل {len(fs)} ملف إلى «ملفات مكررة»؟", parent=win):
+            dest = os.path.join(self.root_dir.get(), T("ملفات مكررة"))
+            if S["confirm"] and not messagebox.askyesno(APP_TITLE, T("نقل {0} ملف إلى «ملفات مكررة»؟").format(len(fs)), parent=win):
                 return
             self.run_plan([(f["path"], dest) for f in fs])
             refresh_after({f["path"] for f in fs})
@@ -1707,14 +2266,14 @@ class App(tk.Tk):
 
         bot = ttk.Frame(win, padding=10)
         bot.pack(fill="x")
-        ttk.Button(bot, text="✔ حدد النسخ الزايدة (خلّي الأصلية)", command=auto_select).pack(side="right", padx=3)
-        ttk.Button(bot, text="📦 انقل المحدد لمجلد «ملفات مكررة»", style="Accent.TButton", command=move_sel).pack(side="left", padx=3)
-        ttk.Button(bot, text="🗑 لسلة المحذوفات", command=trash_sel).pack(side="left", padx=3)
+        ttk.Button(bot, text=T("✔ حدد النسخ الزايدة (خلّي الأصلية)"), command=auto_select).pack(side=SR, padx=3)
+        ttk.Button(bot, text=T("📦 انقل المحدد لمجلد «ملفات مكررة»"), style="Accent.TButton", command=move_sel).pack(side=SL, padx=3)
+        ttk.Button(bot, text=T("🗑 لسلة المحذوفات"), command=trash_sel).pack(side=SL, padx=3)
 
         def work():
             def prog(d, t):
                 win.after(0, lambda: (pb.configure(maximum=max(t, 1), value=d),
-                                      info.set(f"جارٍ مقارنة المحتوى... {d}/{t}")))
+                                      info.set(T("جارٍ مقارنة المحتوى... {0}/{1}").format(d, t))))
             groups = find_exact_duplicates(list(self.files), prog)
             win.after(0, lambda: (st.__setitem__("groups", groups), pb.configure(value=pb["maximum"]), render()))
         threading.Thread(target=work, daemon=True).start()
@@ -1724,39 +2283,39 @@ class App(tk.Tk):
         try:
             from PIL import Image, ImageTk  # noqa
         except ImportError:
-            messagebox.showwarning(APP_TITLE, "هالميزة بتحتاج مكتبة Pillow.\nهي موجودة جوّا نسخة الـ EXE، أو نزّلها بالأمر:\npip install pillow")
+            messagebox.showwarning(APP_TITLE, T("هالميزة بتحتاج مكتبة Pillow.\nهي موجودة جوّا نسخة الـ EXE، أو نزّلها بالأمر:\npip install pillow"))
             return
         if not self.files:
-            messagebox.showwarning(APP_TITLE, "افحص مجلداً أولاً.")
+            messagebox.showwarning(APP_TITLE, T("افحص مجلداً أولاً."))
             return
         from PIL import Image, ImageTk
-        win = self._dialog("الصور المتشابهة", "1150x760")
+        win = self._dialog(T("الصور المتشابهة"), "1150x760")
         win.grab_release()
         level = tk.StringVar(value=SIMILAR_LEVELS[1][0])
         scope = tk.StringVar(value="all")
-        info = tk.StringVar(value="اختار درجة التشابه واكبس «ابحث».")
+        info = tk.StringVar(value=T("اختار درجة التشابه واكبس «ابحث»."))
         st = {"groups": [], "vars": {}, "thumbs": [], "busy": False}
 
         top = ttk.Frame(win, padding=10)
         top.pack(fill="x")
-        ttk.Label(top, text="درجة التشابه:").pack(side="right")
-        ttk.Combobox(top, textvariable=level, state="readonly", width=20, justify="right",
-                     values=[l[0] for l in SIMILAR_LEVELS]).pack(side="right", padx=6)
-        ttk.Radiobutton(top, text="كل الصور", value="all", variable=scope).pack(side="right", padx=(12, 2))
-        ttk.Radiobutton(top, text="المعروضة بس", value="filtered", variable=scope).pack(side="right", padx=2)
-        go = ttk.Button(top, text="🔍 ابحث", style="Accent.TButton")
-        go.pack(side="right", padx=10)
+        ttk.Label(top, text=T("درجة التشابه:")).pack(side=SR)
+        ttk.Combobox(top, textvariable=level, state="readonly", width=20, justify=JR,
+                     values=[l[0] for l in SIMILAR_LEVELS]).pack(side=SR, padx=6)
+        ttk.Radiobutton(top, text=T("كل الصور"), value="all", variable=scope).pack(side=SR, padx=(12, 2))
+        ttk.Radiobutton(top, text=T("المعروضة بس"), value="filtered", variable=scope).pack(side=SR, padx=2)
+        go = ttk.Button(top, text=T("🔍 ابحث"), style="Accent.TButton")
+        go.pack(side=SR, padx=10)
         pb = ttk.Progressbar(top, length=200, mode="determinate")
-        pb.pack(side="left")
-        ttk.Label(win, textvariable=info, style="Muted.TLabel", padding=(12, 0)).pack(anchor="e")
+        pb.pack(side=SL)
+        ttk.Label(win, textvariable=info, style="Muted.TLabel", padding=(12, 0)).pack(anchor=AE)
 
         mid = ttk.Frame(win)
         mid.pack(fill="both", expand=True, padx=10, pady=6)
         canvas = tk.Canvas(mid, bg=BG, highlightthickness=0)
         vs = ttk.Scrollbar(mid, command=canvas.yview)
         canvas.configure(yscrollcommand=vs.set)
-        vs.pack(side="right", fill="y")
-        canvas.pack(side="left", fill="both", expand=True)
+        vs.pack(side=SR, fill="y")
+        canvas.pack(side=SL, fill="both", expand=True)
         inner = ttk.Frame(canvas)
         inner_id = canvas.create_window(0, 0, window=inner, anchor="nw")
         inner.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
@@ -1777,7 +2336,7 @@ class App(tk.Tk):
         def update_info():
             sel = selected_items()
             n = sum(len(g) for g in st["groups"])
-            info.set(f"{len(st['groups'])} مجموعة  •  {n} صورة متشابهة  •  المحدد: {len(sel)} ({human(sum(i['size'] for i in sel))})")
+            info.set(T("{0} مجموعة  •  {1} صورة متشابهة  •  المحدد: {2} ({3})").format(len(st['groups']), n, len(sel), human(sum(i['size'] for i in sel))))
 
         def auto_select():
             for g in st["groups"]:
@@ -1793,7 +2352,7 @@ class App(tk.Tk):
         def move_dups(ask_folder):
             sel = selected_items()
             if not sel:
-                messagebox.showinfo(APP_TITLE, "حدد الصور اللي بدك تنقلها أولاً.", parent=win)
+                messagebox.showinfo(APP_TITLE, T("حدد الصور اللي بدك تنقلها أولاً."), parent=win)
                 return
             if ask_folder:
                 d = filedialog.askdirectory(parent=win, initialdir=self.root_dir.get())
@@ -1801,9 +2360,9 @@ class App(tk.Tk):
                     return
                 dest = os.path.normpath(d)
             else:
-                dest = os.path.join(self.root_dir.get(), "صور مكررة")
+                dest = os.path.join(self.root_dir.get(), T("صور مكررة"))
             if S["confirm"] and not messagebox.askyesno(
-                    APP_TITLE, f"نقل {len(sel)} صورة ({human(sum(i['size'] for i in sel))}) إلى:\n{dest} ؟\n(بتقدر تتراجع بعدين)", parent=win):
+                    APP_TITLE, T("نقل {0} صورة ({1}) إلى:\n{2} ؟\n(بتقدر تتراجع بعدين)").format(len(sel), human(sum(i['size'] for i in sel)), dest), parent=win):
                 return
             self.run_plan([(it["path"], dest) for it in sel])
             gone = {it["path"] for it in sel}
@@ -1811,11 +2370,11 @@ class App(tk.Tk):
             st["groups"] = [g for g in st["groups"] if len(g) > 1]
             render()
 
-        ttk.Button(bot, text="✔ حدد المكرر تلقائياً (خلّي الأفضل)", command=auto_select).pack(side="right", padx=3)
-        ttk.Button(bot, text="✖ إلغاء التحديد", command=clear_sel).pack(side="right", padx=3)
-        ttk.Button(bot, text="📦 انقل المحدد لمجلد «صور مكررة»", style="Accent.TButton",
-                   command=lambda: move_dups(False)).pack(side="left", padx=3)
-        ttk.Button(bot, text="📦 انقل المحدد إلى...", command=lambda: move_dups(True)).pack(side="left", padx=3)
+        ttk.Button(bot, text=T("✔ حدد المكرر تلقائياً (خلّي الأفضل)"), command=auto_select).pack(side=SR, padx=3)
+        ttk.Button(bot, text=T("✖ إلغاء التحديد"), command=clear_sel).pack(side=SR, padx=3)
+        ttk.Button(bot, text=T("📦 انقل المحدد لمجلد «صور مكررة»"), style="Accent.TButton",
+                   command=lambda: move_dups(False)).pack(side=SL, padx=3)
+        ttk.Button(bot, text=T("📦 انقل المحدد إلى..."), command=lambda: move_dups(True)).pack(side=SL, padx=3)
 
         def render():
             for w in inner.winfo_children():
@@ -1824,7 +2383,7 @@ class App(tk.Tk):
             old = st["vars"]
             st["vars"] = {}
             if not st["groups"]:
-                ttk.Label(inner, text="ما في صور متشابهة 👌", font=F(13)).pack(pady=40)
+                ttk.Label(inner, text=T("ما في صور متشابهة 👌"), font=F(13)).pack(pady=40)
                 update_info()
                 return
             cols = max(2, (canvas.winfo_width() - 30) // 175)
@@ -1832,10 +2391,10 @@ class App(tk.Tk):
                 box = ttk.Frame(inner, style="Panel.TFrame", padding=10)
                 box.pack(fill="x", pady=5)
                 waste = sum(it["size"] for it in g[1:])
-                ttk.Label(box, text=f"مجموعة {gi}  —  {len(g)} صور  •  بتوفّر {human(waste)}",
-                          style="Panel.TLabel", font=F(11, True), foreground=ACCENT).pack(anchor="e", pady=(0, 6))
+                ttk.Label(box, text=T("مجموعة {0}  —  {1} صور  •  بتوفّر {2}").format(gi, len(g), human(waste)),
+                          style="Panel.TLabel", font=F(11, True), foreground=ACCENT).pack(anchor=AE, pady=(0, 6))
                 cards = ttk.Frame(box, style="Panel.TFrame")
-                cards.pack(anchor="e")
+                cards.pack(anchor=AE)
                 for k, it in enumerate(g):
                     card = tk.Frame(cards, bg=FIELD, highlightthickness=2,
                                     highlightbackground=ACCENT if k == 0 else LINE)
@@ -1850,14 +2409,14 @@ class App(tk.Tk):
                     st["vars"][it["path"]] = v
                     tk.Checkbutton(card, text=it["name"][:22], variable=v, bg=FIELD, fg=FG,
                                    selectcolor=FIELD, activebackground=FIELD, activeforeground=FG,
-                                   font=F(9), anchor="e").pack(fill="x", padx=4)
+                                   font=F(9), anchor=AE).pack(fill="x", padx=4)
                     meta = f"{it['w']}×{it['h']}  •  {human(it['size'])}"
-                    tk.Label(card, text=("⭐ الأفضل  •  " if k == 0 else "") + meta, bg=FIELD,
+                    tk.Label(card, text=(T("⭐ الأفضل  •  ") if k == 0 else "") + meta, bg=FIELD,
                              fg=ACCENT if k == 0 else MUTED, font=F(8)).pack(padx=4)
                     rel = os.path.relpath(os.path.dirname(it["path"]), self.root_dir.get())
                     tk.Label(card, text=f"📁 {rel}"[:28], bg=FIELD, fg=MUTED, font=F(8)).pack(padx=4, pady=(0, 4))
             if len(st["groups"]) > 300:
-                ttk.Label(inner, text="معروض أول 300 مجموعة.", style="Muted.TLabel").pack(pady=6)
+                ttk.Label(inner, text=T("معروض أول 300 مجموعة."), style="Muted.TLabel").pack(pady=6)
             canvas.yview_moveto(0)
             update_info()
 
@@ -1869,7 +2428,7 @@ class App(tk.Tk):
             src = self.files if scope.get() == "all" else self.filtered
             imgs = [f for f in src if f["ext"].lower() in HASHABLE]
             thr = dict(SIMILAR_LEVELS)[level.get()]
-            info.set(f"جارٍ تحليل {len(imgs)} صورة...")
+            info.set(T("جارٍ تحليل {0} صورة...").format(len(imgs)))
             pb.configure(maximum=max(1, len(imgs)), value=0)
 
             def prog(v, txt):
@@ -1884,8 +2443,8 @@ class App(tk.Tk):
                     except Exception:  # noqa
                         pass
                     if k % 20 == 0:
-                        prog(k, f"جارٍ تحليل الصور... {k}/{len(imgs)}")
-                prog(len(imgs), "جارٍ مقارنة الصور...")
+                        prog(k, T("جارٍ تحليل الصور... {0}/{1}").format(k, len(imgs)))
+                prog(len(imgs), T("جارٍ مقارنة الصور..."))
                 groups = group_similar(items, thr)
                 for g in groups[:300]:
                     for it in g:
@@ -1914,39 +2473,39 @@ class App(tk.Tk):
     def organize_dialog(self):
         root = self.root_dir.get()
         if not self.files or not os.path.isdir(root):
-            messagebox.showwarning(APP_TITLE, "افحص مجلداً أولاً.")
+            messagebox.showwarning(APP_TITLE, T("افحص مجلداً أولاً."))
             return
-        win = self._dialog("تنظيم تلقائي", "640x560")
+        win = self._dialog(T("تنظيم تلقائي"), "640x560")
         mode = tk.StringVar(value=S["default_mode"])
         scope = tk.StringVar(value="all")
         dest = tk.StringVar(value=root)
 
         frm = ttk.Frame(win, padding=14)
         frm.pack(fill="both", expand=True)
-        ttk.Label(frm, text="طريقة التنظيم:", style="Title.TLabel").pack(anchor="e")
+        ttk.Label(frm, text=T("طريقة التنظيم:"), style="Title.TLabel").pack(anchor=AE)
         for val, txt in ORGANIZE_MODES:
-            ttk.Radiobutton(frm, text=txt, value=val, variable=mode, command=lambda: update()).pack(anchor="e", padx=10)
+            ttk.Radiobutton(frm, text=txt, value=val, variable=mode, command=lambda: update()).pack(anchor=AE, padx=10)
 
-        ttk.Label(frm, text="الملفات:", style="Title.TLabel").pack(anchor="e", pady=(10, 0))
-        ttk.Radiobutton(frm, text=f"كل الملفات ({len(self.files)})", value="all",
-                        variable=scope, command=lambda: update()).pack(anchor="e", padx=10)
-        ttk.Radiobutton(frm, text=f"الملفات المعروضة حالياً فقط ({len(self.filtered)})", value="filtered",
-                        variable=scope, command=lambda: update()).pack(anchor="e", padx=10)
+        ttk.Label(frm, text=T("الملفات:"), style="Title.TLabel").pack(anchor=AE, pady=(10, 0))
+        ttk.Radiobutton(frm, text=T("كل الملفات ({0})").format(len(self.files)), value="all",
+                        variable=scope, command=lambda: update()).pack(anchor=AE, padx=10)
+        ttk.Radiobutton(frm, text=T("الملفات المعروضة حالياً فقط ({0})").format(len(self.filtered)), value="filtered",
+                        variable=scope, command=lambda: update()).pack(anchor=AE, padx=10)
 
         drow = ttk.Frame(frm)
         drow.pack(fill="x", pady=(10, 0))
-        ttk.Label(drow, text="المجلدات الجديدة تنعمل داخل:").pack(side="right")
+        ttk.Label(drow, text=T("المجلدات الجديدة تنعمل داخل:")).pack(side=SR)
 
         def pick_dest():
             d = filedialog.askdirectory(parent=win, initialdir=dest.get())
             if d:
                 dest.set(os.path.normpath(d))
                 update()
-        ttk.Button(drow, text="تغيير", command=pick_dest).pack(side="left")
-        ttk.Entry(drow, textvariable=dest, state="readonly").pack(side="right", fill="x", expand=True, padx=4)
+        ttk.Button(drow, text=T("تغيير"), command=pick_dest).pack(side=SL)
+        ttk.Entry(drow, textvariable=dest, state="readonly").pack(side=SR, fill="x", expand=True, padx=4)
 
-        ttk.Label(frm, text="معاينة (المجلد ← عدد الملفات):", style="Title.TLabel").pack(anchor="e", pady=(10, 2))
-        preview = dark_listbox(frm, height=9, justify="right")
+        ttk.Label(frm, text=T("معاينة (المجلد ← عدد الملفات):"), style="Title.TLabel").pack(anchor=AE, pady=(10, 2))
+        preview = dark_listbox(frm, height=9, justify=JR)
         preview.pack(fill="both", expand=True)
 
         btns = ttk.Frame(frm)
@@ -1963,22 +2522,22 @@ class App(tk.Tk):
                 counts[rel] = counts.get(rel, 0) + 1
             preview.delete(0, "end")
             if not plan:
-                preview.insert("end", "كل شي منظم، ما في ملفات بدها نقل 👌")
+                preview.insert("end", T("كل شي منظم، ما في ملفات بدها نقل 👌"))
             for rel, n in sorted(counts.items(), key=lambda kv: -kv[1]):
-                preview.insert("end", f"{rel}   ←   {n} ملف")
-            go.config(text=f"تنفيذ ونقل {len(plan)} ملف")
+                preview.insert("end", T("{0}   ←   {1} ملف").format(rel, n))
+            go.config(text=T("تنفيذ ونقل {0} ملف").format(len(plan)))
 
         def run():
             if not state["plan"]:
                 return
             if (not S["confirm"]) or messagebox.askyesno(
-                    APP_TITLE, f"متأكد؟ رح ينقل {len(state['plan'])} ملف.\n(بتقدر تتراجع بعدين)", parent=win):
+                    APP_TITLE, T("متأكد؟ رح ينقل {0} ملف.\n(بتقدر تتراجع بعدين)").format(len(state['plan'])), parent=win):
                 win.destroy()
                 self.run_plan(state["plan"])
 
-        go = ttk.Button(btns, text="تنفيذ", style="Accent.TButton", command=run)
-        go.pack(side="right")
-        ttk.Button(btns, text="إلغاء", command=win.destroy).pack(side="left")
+        go = ttk.Button(btns, text=T("تنفيذ"), style="Accent.TButton", command=run)
+        go.pack(side=SR)
+        ttk.Button(btns, text=T("إلغاء"), command=win.destroy).pack(side=SL)
         update()
 
 

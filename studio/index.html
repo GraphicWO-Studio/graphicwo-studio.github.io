@@ -24,12 +24,14 @@
 body[data-theme="green"]{--accent:#7ee81f;--accent2:#2fbf71;--accent-fg:#06110a;--bg:#080d09;--panel:#0f1712;--panel2:#142019;--line:#21382a}
 body[data-theme="purple"]{--accent:#a855f7;--accent2:#ec4899;--bg:#0f0b17;--panel:#171222;--panel2:#1e172d;--line:#33284b}
 body[data-theme="orange"]{--accent:#ff8a3d;--accent2:#f43f5e;--accent-fg:#1a0f05;--bg:#110d0a;--panel:#1a1510;--panel2:#221b14;--line:#3a2f24}
+body[data-theme="black"]{--bg:#000;--panel:#0b0b0b;--panel2:#141414;--line:#2c2c2c;--fg:#fff;--muted:#9a9a9a;--accent:#fff;--accent2:#bdbdbd;--accent-fg:#000}
+body[data-theme="white"]{--bg:#fff;--panel:#fff;--panel2:#f4f4f4;--line:#d6d6d6;--fg:#000;--muted:#666;--accent:#000;--accent2:#444;--accent-fg:#fff}
 body[data-theme="light"]{--bg:#f3f5fa;--panel:#ffffff;--panel2:#f1f4f9;--line:#dbe1ec;--fg:#172033;--muted:#68738a;--accent:#2563eb;--accent2:#7c3aed}
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);font-size:15px}
-body:not([data-theme="light"])::before{content:"";position:fixed;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(5,10,8,.45),rgba(5,10,8,.8)),url("../assets/bg.jpg") center/cover no-repeat}
-@media(max-width:700px){body:not([data-theme="light"])::before{background:linear-gradient(180deg,rgba(5,10,8,.45),rgba(5,10,8,.82)),url("../assets/bg-mobile.jpg") center/cover no-repeat}}
-body:not([data-theme="light"]) .card,body:not([data-theme="light"]) header{background:color-mix(in srgb,var(--panel) 82%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+body:not([data-theme="light"]):not([data-theme="white"])::before{content:"";position:fixed;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(5,10,8,.45),rgba(5,10,8,.8)),url("../assets/bg.jpg") center/cover no-repeat}
+@media(max-width:700px){body:not([data-theme="light"]):not([data-theme="white"])::before{background:linear-gradient(180deg,rgba(5,10,8,.45),rgba(5,10,8,.82)),url("../assets/bg-mobile.jpg") center/cover no-repeat}}
+body:not([data-theme="light"]):not([data-theme="white"]) .card,body:not([data-theme="light"]):not([data-theme="white"]) header{background:color-mix(in srgb,var(--panel) 82%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
 button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
 a{color:var(--accent)}
 .app{max-width:1500px;margin:0 auto;padding:16px;display:grid;grid-template-columns:400px 1fr;gap:16px;min-height:100vh}
@@ -115,8 +117,8 @@ details[open] summary:before{content:"▾ "}
 .modal h3{margin:0 0 6px}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(120px);background:var(--panel);border:1px solid var(--accent);padding:10px 18px;border-radius:12px;transition:.3s;z-index:60}
 .toast.show{transform:translateX(-50%) translateY(0)}
-.themes{display:flex;gap:8px}
-.th{width:34px;height:34px;border-radius:50%;cursor:pointer;border:3px solid transparent}
+.themes{display:flex;gap:8px;flex-wrap:wrap}
+.th{width:34px;height:34px;border-radius:50%;cursor:pointer;border:3px solid var(--line)}
 .th.on{border-color:var(--fg)}
 footer{grid-column:1/-1;text-align:center;color:var(--muted);font-size:12.5px;padding:6px}
 .count{display:flex;gap:6px}
@@ -448,7 +450,7 @@ function renderRefs() {
 }
 function applyTheme() {
   document.body.dataset.theme = S.theme;
-  const T = [["blue", "#4f8cff"], ["green", "#7ee81f"], ["purple", "#a855f7"], ["orange", "#ff8a3d"], ["light", "#e8ecf3"]];
+  const T = [["green", "#7ee81f"], ["black", "#000000"], ["white", "#ffffff"], ["blue", "#4f8cff"], ["purple", "#a855f7"], ["orange", "#ff8a3d"], ["light", "#e8ecf3"]];
   $("#themes").innerHTML = T.map(([k, c]) => `<div class="th ${k === S.theme ? "on" : ""}" data-t="${k}" style="background:${c}" title="${k}"></div>`).join("");
 }
 

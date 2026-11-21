@@ -33,6 +33,8 @@ body:not([data-theme="light"]):not([data-theme="white"])::before{content:"";posi
 @media(max-width:700px){body:not([data-theme="light"]):not([data-theme="white"])::before{background:linear-gradient(180deg,rgba(5,10,8,.45),rgba(5,10,8,.82)),url("../assets/bg-mobile.jpg") center/cover no-repeat}}
 body:not([data-theme="light"]):not([data-theme="white"]) .card,body:not([data-theme="light"]):not([data-theme="white"]) header{background:color-mix(in srgb,var(--panel) 82%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
 button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
+html[lang="en"],html[lang="fr"]{--font:"Cairo","Segoe UI",Tahoma,sans-serif}
+textarea,input[type=text],input[type=number]{font-family:"Cairo","Segoe UI",Tahoma,sans-serif}
 a{color:var(--accent)}
 .app{max-width:1500px;margin:0 auto;padding:16px;display:grid;grid-template-columns:400px 1fr;gap:16px;min-height:100vh}
 @media(max-width:980px){.app{grid-template-columns:1fr}}

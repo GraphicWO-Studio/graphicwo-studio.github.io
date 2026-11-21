@@ -1,15 +1,11 @@
 {
  "studio": {
-  "build": "20261121200025",
+  "build": "20261121200649",
   "notes_ar": "جديد: 🛠 أدوات الصور (حجم، قص، رفع دقة، إزالة خلفية، تعديل بالذكاء الاصطناعي)، أبعاد بالبكسل، لحد 8 صور، وزر الرجوع بيسكّر النوافذ.",
   "notes_en": "New: 🛠 image tools (resize, crop, upscale, background removal, AI edit), pixel sizes, up to 8 images, and the back button closes windows.",
   "notes_fr": "Nouveau : 🛠 outils d'image (taille, recadrage, agrandissement, suppression d'arrière-plan, retouche IA), tailles en pixels, jusqu'à 8 images, et le bouton retour ferme les fenêtres."
  },
  "organizer": {
-  "version": "1.2",
-  "notes_ar": "جديد: بيخبّرك لحاله بالتحديثات، وبتوصلك رسائل GraphicWO.",
-  "notes_en": "New: automatic update alerts and GraphicWO messages.",
-  "notes_fr": "Nouveau : alertes de mise à jour automatiques et messages GraphicWO.",
-  "url": "https://github.com/GraphicWO-Studio/graphicwo-studio.github.io/releases/download/organizer-latest/GraphicWO_Organizer.exe"
+  "version": "1.2"
  }
 }

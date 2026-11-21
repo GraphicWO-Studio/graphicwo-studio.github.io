@@ -70,3 +70,10 @@ jobs:
             Download **GraphicWO_Studio.apk** and install it. The app runs inside Chrome, so Google sign-in and downloads work just like on the website. If you have the old version, uninstall it first.
 
             Téléchargez **GraphicWO_Studio.apk** et installez-le. L'app fonctionne dans Chrome : la connexion Google et les téléchargements marchent comme sur le site. Désinstallez d'abord l'ancienne version.
+
+      - name: Tell installed apps about the new version
+        run: |
+          python3 tools/publish_release_info.py android "${{ github.run_number }}"
+          git config user.name "GraphicWO"; git config user.email "graphicwo@users.noreply.github.com"
+          git add android.json
+          git diff --cached --quiet || { git commit -qm "Android ${{ github.run_number }} published"; git pull -q --rebase; git push -q; }

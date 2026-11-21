@@ -49,3 +49,12 @@ jobs:
             نزّل **GraphicWO_Organizer.exe** وشغّله مباشرة، ما بيحتاج تثبيت ولا بايثون.
 
             إذا طلعتلك شاشة «Windows protected your PC»: اكبس **More info** وبعدين **Run anyway**.
+
+      - name: Tell installed copies about the new version
+        shell: bash
+        run: |
+          VER=$(python -c "import re;print(re.search(r'APP_VERSION = \"([^\"]+)\"', open('organizer/GraphicWO_Organizer.pyw', encoding='utf-8').read()).group(1))")
+          python tools/publish_release_info.py organizer "$VER"
+          git config user.name "GraphicWO"; git config user.email "graphicwo@users.noreply.github.com"
+          git add organizer.json version.json
+          git diff --cached --quiet || { git commit -qm "Organizer $VER published"; git pull -q --rebase; git push -q; }

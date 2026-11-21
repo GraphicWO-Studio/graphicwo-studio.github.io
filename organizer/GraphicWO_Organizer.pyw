@@ -551,8 +551,8 @@ def T(s):
 
 
 APP_NAME = T("منظّم الملفات")
-APP_VERSION = "1.2"
-UPDATE_URL = "https://graphicwo-studio.github.io/version.json"
+APP_VERSION = "1.3"
+UPDATE_URL = "https://graphicwo-studio.github.io/organizer.json"
 MESSAGE_URL = "https://graphicwo-studio.github.io/message.json"
 DOWNLOAD_URL = "https://github.com/GraphicWO-Studio/graphicwo-studio.github.io/releases/download/organizer-latest/GraphicWO_Organizer.exe"
 DEV_NAME = "GraphicWO"
@@ -2607,7 +2607,7 @@ def check_for_update(root):
             import urllib.request
             req = urllib.request.Request(UPDATE_URL, headers={"Cache-Control": "no-cache", "User-Agent": "GraphicWO-Organizer"})
             with urllib.request.urlopen(req, timeout=8) as r:
-                info = json.loads(r.read().decode("utf-8")).get("organizer", {})
+                info = json.loads(r.read().decode("utf-8"))
             latest = str(info.get("version", ""))
             if latest and _ver(latest) > _ver(APP_VERSION):
                 notes = info.get("notes_" + LANG) or info.get("notes_ar") or ""

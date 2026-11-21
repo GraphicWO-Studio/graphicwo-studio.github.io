@@ -8,7 +8,7 @@
 
 **مجانية 100% • مفتوحة المصدر**
 
-🌐 **الموقع:** https://{{OWNER}}.github.io/{{NAME}}/
+🌐 **الموقع:** https://hero-apk.github.io/graphicwo/
 
 </div>
 

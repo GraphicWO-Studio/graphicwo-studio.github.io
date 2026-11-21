@@ -67,7 +67,7 @@ async function runImage(env, form) {
     const r = new Response(fd);
     out = await env.AI.run(model, {multipart: {body: r.body, contentType: r.headers.get("content-type")}});
   } else if (model.includes("schnell")) {
-    out = await env.AI.run(model, {prompt, steps: 4, seed});
+    out = await env.AI.run(model, {prompt, steps: 4});
   } else {
     out = await env.AI.run(model, {prompt, width, height, seed});
   }

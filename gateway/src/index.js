@@ -122,11 +122,14 @@ async function chat(env, body) {
   }
   if (messages.length < 2) throw Object.assign(new Error("no_message"), {status: 400});
   let lastErr;
-  for (const model of ["@cf/meta/llama-3.3-70b-instruct-fp8-fast", "@cf/openai/gpt-oss-20b", "@cf/meta/llama-3.1-8b-instruct-fast"]) {
+  const CHAT_MODELS = ["@cf/google/gemma-3-12b-it", "@cf/qwen/qwen3-30b-a3b-fp8", "@cf/mistralai/mistral-small-3.1-24b-instruct", "@cf/meta/llama-3.3-70b-instruct-fp8-fast", "@cf/meta/llama-3.1-8b-instruct-fast"];
+  const order = CHAT_MODELS.includes(body.model) ? [body.model, ...CHAT_MODELS.filter(m => m !== body.model)] : CHAT_MODELS;
+  for (const model of order) {
     try {
       const r = await env.AI.run(model, {messages, max_tokens: 900, temperature: 0.7});
-      const text = r?.response ?? r?.choices?.[0]?.message?.content ?? (typeof r === "string" ? r : "");
-      if (text && String(text).trim()) return String(text).trim();
+      let text = r?.response ?? r?.choices?.[0]?.message?.content ?? (typeof r === "string" ? r : "");
+      text = String(text || "").replace(/<think>[\s\S]*?<\/think>/g, "").trim();
+      if (text) return body.debug ? model + " :: " + text : text;
     } catch (e) { lastErr = e; }
   }
   throw lastErr || new Error("no_reply");

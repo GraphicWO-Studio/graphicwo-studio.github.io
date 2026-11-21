@@ -1,0 +1,41 @@
+name: Deploy gateway (Cloudflare Worker)
+
+on:
+  push:
+    branches: [main]
+    paths: ["gateway/**", ".github/workflows/deploy-gateway.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check secrets
+        id: check
+        env:
+          CF: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          DS: ${{ secrets.DATASET_TOKEN }}
+        run: |
+          if [ -z "$CF" ] || [ -z "$DS" ]; then echo "::notice::Add CLOUDFLARE_API_TOKEN and DATASET_TOKEN secrets to deploy the gateway."; echo "ready=false" >> "$GITHUB_OUTPUT"; else echo "ready=true" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Deploy
+        if: steps.check.outputs.ready == 'true'
+        id: deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: gateway
+          secrets: |
+            DATASET_TOKEN
+        env:
+          DATASET_TOKEN: ${{ secrets.DATASET_TOKEN }}
+
+      - name: Gateway address
+        if: steps.check.outputs.ready == 'true'
+        run: echo "GATEWAY_URL=${{ steps.deploy.outputs.deployment-url }}"

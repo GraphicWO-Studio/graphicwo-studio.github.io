@@ -1,0 +1,16 @@
+name = "graphicwo-gateway"
+main = "src/index.js"
+compatibility_date = "2025-06-01"
+workers_dev = true
+
+[vars]
+DATASET_REPO = "GraphicWO-Studio/graphicwo-dataset"
+ALLOWED_ORIGINS = "https://graphicwo-studio.github.io"
+
+# max 10 shared images per minute per visitor
+[[ratelimits]]
+name = "LIMITER"
+namespace_id = "1001"
+  [ratelimits.simple]
+  limit = 10
+  period = 60

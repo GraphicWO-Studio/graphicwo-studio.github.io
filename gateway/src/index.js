@@ -1,0 +1,95 @@
+// GraphicWO gateway: receives 👍 images from the studio and stores them in the
+// private dataset repo. The GitHub token lives only here (Worker secret), never in the website.
+// No IP addresses or personal data are stored.
+
+const MAX_BYTES = 4 * 1024 * 1024;
+const MIN_BYTES = 2000;
+
+function json(body, status, cors) {
+  return new Response(JSON.stringify(body), {status, headers: {"Content-Type": "application/json", ...cors}});
+}
+
+function sniff(b) {
+  if (b[0] === 0xFF && b[1] === 0xD8 && b[2] === 0xFF) return "jpg";
+  if (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4E && b[3] === 0x47) return "png";
+  if (b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 && b[8] === 0x57 && b[9] === 0x45) return "webp";
+  return null;
+}
+
+function toB64(bytes) {
+  let s = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(s);
+}
+
+const clean = (v, n) => String(v ?? "").replace(/[\u0000-\u001f]/g, " ").slice(0, n);
+
+async function putFile(env, path, b64, message) {
+  const r = await fetch(`https://api.github.com/repos/${env.DATASET_REPO}/contents/${path}`, {
+    method: "PUT",
+    headers: {
+      "Authorization": `Bearer ${env.DATASET_TOKEN}`,
+      "Accept": "application/vnd.github+json",
+      "User-Agent": "graphicwo-gateway",
+      "X-GitHub-Api-Version": "2022-11-28",
+    },
+    body: JSON.stringify({message, content: b64, committer: {name: "GraphicWO Bot", email: "graphicwo@users.noreply.github.com"}}),
+  });
+  if (!r.ok) throw new Error("github " + r.status);
+}
+
+export default {
+  async fetch(req, env) {
+    const allowed = String(env.ALLOWED_ORIGINS || "").split(",").map(s => s.trim()).filter(Boolean);
+    const origin = req.headers.get("Origin") || "";
+    const cors = {
+      "Access-Control-Allow-Origin": allowed.includes(origin) ? origin : allowed[0] || "*",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+      "Vary": "Origin",
+    };
+    if (req.method === "OPTIONS") return new Response(null, {headers: cors});
+    const url = new URL(req.url);
+    if (req.method === "GET" && url.pathname === "/") return json({ok: true, service: "graphicwo-gateway"}, 200, cors);
+    if (req.method !== "POST" || url.pathname !== "/like") return json({error: "not_found"}, 404, cors);
+    if (!allowed.includes(origin)) return json({error: "forbidden"}, 403, cors);
+    if (!env.DATASET_TOKEN) return json({error: "not_configured"}, 503, cors);
+
+    if (env.LIMITER) {
+      const ip = req.headers.get("CF-Connecting-IP") || "anon";
+      const {success} = await env.LIMITER.limit({key: ip});
+      if (!success) return json({error: "rate_limited"}, 429, cors);
+    }
+
+    let form;
+    try { form = await req.formData(); } catch { return json({error: "bad_request"}, 400, cors); }
+    const img = form.get("image");
+    if (!img || typeof img === "string") return json({error: "no_image"}, 400, cors);
+    if (img.size > MAX_BYTES || img.size < MIN_BYTES) return json({error: "bad_size"}, 413, cors);
+    const bytes = new Uint8Array(await img.arrayBuffer());
+    const ext = sniff(bytes);
+    if (!ext) return json({error: "bad_type"}, 415, cors);
+
+    let meta = {};
+    try { meta = JSON.parse(form.get("meta") || "{}"); } catch {}
+    const record = {
+      prompt: clean(meta.prompt, 600),
+      engine: clean(meta.engine, 30),
+      model: clean(meta.model, 80),
+      style: clean(meta.style, 40),
+      ratio: clean(meta.ratio, 10),
+      lang: clean(meta.lang, 5),
+      received: new Date().toISOString(),
+    };
+
+    const id = new Date().toISOString().replace(/[:.]/g, "-") + "-" + crypto.randomUUID().slice(0, 8);
+    const day = id.slice(0, 10);
+    try {
+      await putFile(env, `pending/${day}/${id}.${ext}`, toB64(bytes), "👍 new image");
+      await putFile(env, `pending/${day}/${id}.json`, toB64(new TextEncoder().encode(JSON.stringify(record, null, 1))), "👍 new image info");
+    } catch (e) {
+      return json({error: "storage_failed"}, 502, cors);
+    }
+    return json({ok: true}, 200, cors);
+  },
+};

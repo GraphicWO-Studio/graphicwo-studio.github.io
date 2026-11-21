@@ -1,1 +1,14 @@
-[]
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "io.github.graphicwostudio.app",
+      "sha256_cert_fingerprints": [
+        "FF:9B:29:67:D5:33:61:3F:69:53:64:D5:15:0D:1E:D2:BD:BD:29:BA:65:6D:95:23:03:42:05:AC:73:49:79:B1"
+      ]
+    }
+  }
+]

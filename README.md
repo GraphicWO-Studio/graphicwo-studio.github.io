@@ -1,71 +1,109 @@
 <div align="center">
 
-<img src="assets/avatar.png" width="130" alt="GraphicWO">
-<br>
-<img src="assets/logo.png" height="60" alt="GraphicWO">
+<img src="assets/avatar.png" width="140" alt="GraphicWO">
+<br><br>
+<img src="assets/logo.png" height="64" alt="GraphicWO">
 
-### مجانية 100% • Free • Gratuit — مفتوحة المصدر • Open source
+# GraphicWO Studio
 
-🌐 **https://graphicwo-studio.github.io**
+**Free creative tools for everyone: AI image generation and smart file organization.**
 
-| 🎨 استوديو الصور / AI Studio | 📱 Android | 💻 Windows |
-|:---:|:---:|:---:|
-| [**افتح الاستوديو · Open · Ouvrir**](https://graphicwo-studio.github.io/studio/) | [**⬇ GraphicWO_Studio.apk**](https://github.com/GraphicWO-Studio/graphicwo-studio.github.io/releases/download/android-latest/GraphicWO_Studio.apk) | [**⬇ GraphicWO_Organizer.exe**](https://github.com/GraphicWO-Studio/graphicwo-studio.github.io/releases/download/organizer-latest/GraphicWO_Organizer.exe) |
+[![Website](https://img.shields.io/badge/Website-graphicwo--studio.github.io-7ee81f?style=for-the-badge&logo=googlechrome&logoColor=white&labelColor=0b120d)](https://graphicwo-studio.github.io)
+[![Android](https://img.shields.io/badge/Android-Download_APK-7ee81f?style=for-the-badge&logo=android&logoColor=white&labelColor=0b120d)](https://github.com/GraphicWO-Studio/graphicwo-studio.github.io/releases/download/android-latest/GraphicWO_Studio.apk)
+[![Windows](https://img.shields.io/badge/Windows-Download_EXE-7ee81f?style=for-the-badge&logo=windows&logoColor=white&labelColor=0b120d)](https://github.com/GraphicWO-Studio/graphicwo-studio.github.io/releases/download/organizer-latest/GraphicWO_Organizer.exe)
 
-<img src="assets/shot-studio.png" width="49%" alt="AI Studio"> <img src="assets/shot-organizer.png" width="49%" alt="File Organizer">
+![Free](https://img.shields.io/badge/price-100%25_free-7ee81f?labelColor=0b120d)
+![No ads](https://img.shields.io/badge/ads-none-7ee81f?labelColor=0b120d)
+![Languages](https://img.shields.io/badge/languages-EN_·_AR_·_FR-7ee81f?labelColor=0b120d)
+![Kick](https://img.shields.io/badge/kick-graphicwo-53fc18?logo=kick&logoColor=white&labelColor=0b120d)
+
+<img src="assets/shot-studio.png" width="49%" alt="AI Image Studio"> <img src="assets/shot-organizer.png" width="49%" alt="File Organizer">
 
 </div>
 
 ---
 
-<div dir="rtl">
+## 🎨 AI Image Studio
+
+Turn words into images, for free, in your browser or on Android.
+
+| | |
+|---|---|
+| **Engines** | **Pollinations**: no account needed · **Puter**: free account with Nano Banana 2 / Pro, GPT Image and Grok |
+| **Creative control** | 13 styles · 6 sizes (Reels, YouTube, posts) · up to 4 images at once · seed & negative prompts |
+| **Editing** | Upload or paste a reference photo and describe the change |
+| **Gallery** | Every image is saved on your device only, with search, reuse and download |
+| **Everywhere** | Web, Android app, or “Add to Home screen”. English, Arabic and French. 7 themes including black & white |
+
+**→ [Open the studio](https://graphicwo-studio.github.io/studio/)**
+
+## 🗂 File Organizer for Windows
+
+A clean, fast way to tidy any folder.
+
+| | |
+|---|---|
+| **Auto-organize** | `Images/JPG`, `Videos/MP4`, `Documents/PDF`… or by size or date |
+| **Safe by design** | Never touches subfolders · every action can be undone (last 30) · deletes go to the Recycle Bin |
+| **Find clutter** | Similar-image detection and byte-exact duplicate finder |
+| **Batch rename** | Number, camera capture date, find & replace, letter case, with a live preview |
+| **Personal** | English, Arabic and French · 8 themes including black & white · custom file types · GE SS Two font |
+
+**→ [Download GraphicWO_Organizer.exe](https://github.com/GraphicWO-Studio/graphicwo-studio.github.io/releases/download/organizer-latest/GraphicWO_Organizer.exe)** (no installation needed)
+
+> First launch: if Windows shows *“Windows protected your PC”*, click **More info → Run anyway**.
+
+---
+
+<div dir="rtl" align="right">
 
 ## 🇸🇾 بالعربي
 
-### 🎨 استوديو الصور بالذكاء الاصطناعي
-- **Pollinations:** مجاني بدون أي حساب (صورة كل 45 ثانية تقريباً، والتطبيق بيستنى لحاله)
-- **Puter:** مجاني بحساب Puter، وفيه Nano Banana 2 / Pro وGPT Image وGrok. الرصيد المجاني بيتجدد كل شهر
-- 13 ستايل، و6 مقاسات (ريلز، يوتيوب، بوست)، ولحد 4 صور بالمرة
-- تعديل على صورة مرجعية، ومعرض بيحفظ صورك على جهازك بس
-- عربي / English / Français، و7 ثيمات منها الأبيض والأسود
-- بيشتغل بالمتصفح، أو كتطبيق أندرويد، أو «إضافة إلى الشاشة الرئيسية»
+**GraphicWO Studio** أدوات إبداعية مجانية للجميع: إنشاء صور بالذكاء الاصطناعي وتنظيم الملفات بذكاء. **مجانية 100%، وبدون إعلانات.**
 
-### 💻 منظّم الملفات للويندوز
-- تنظيم تلقائي: `صور/JPG` و`فيديو/MP4` و`مستندات/PDF`، أو حسب الحجم، أو حسب التاريخ
-- **ما بيلمس المجلدات الفرعية أبداً**، بيشتغل على ملفات المجلد اللي بتختاره بس
-- لقط الصور المتشابهة والملفات المكررة (تطابق 100%)
-- إعادة تسمية جماعية بتاريخ التصوير، ومعاينة، وحذف لسلة المحذوفات
-- تراجع عن آخر 30 عملية
-- عربي / English / Français، و8 ثيمات منها الأبيض والأسود، وخط GE SS Two
+### 🎨 استوديو الصور بالذكاء الاصطناعي
+بتكتب وصف الصورة، بأي لغة، وبتطلعلك الصورة ببلاش، من المتصفح أو من تطبيق الأندرويد.
+- **محرّكين مجانيين:** Pollinations بدون حساب، وPuter بحساب مجاني وفيه Nano Banana وGPT Image وGrok.
+- **13 ستايل و6 مقاسات:** ريلز، يوتيوب، بوستات. ولحد 4 صور بالمرة.
+- **تعديل على صورتك:** ارفعها أو الصقها، واكتب شو بدك يتغيّر.
+- **معرض:** بيحفظ كل صورك على جهازك بس.
+- **3 لغات:** عربي وإنجليزي وفرنسي، و7 ثيمات منها الأبيض والأسود.
+
+**← [افتح الاستوديو](https://graphicwo-studio.github.io/studio/)** · **[نزّل تطبيق الأندرويد](https://github.com/GraphicWO-Studio/graphicwo-studio.github.io/releases/download/android-latest/GraphicWO_Studio.apk)**
+
+### 🗂 منظّم الملفات للويندوز
+طريقة سريعة ونظيفة لترتّب أي مجلد.
+- **تنظيم تلقائي:** `صور/JPG`، `فيديو/MP4`، `مستندات/PDF`، أو حسب الحجم أو التاريخ.
+- **آمن:** ما بيلمس المجلدات الفرعية أبداً. فيك تتراجع عن آخر 30 عملية، والحذف بيروح لسلة المحذوفات.
+- **بيلاقي الفوضى:** الصور المتشابهة والملفات المكررة.
+- **إعادة تسمية جماعية:** برقم أو بتاريخ التصوير من الكاميرا، مع معاينة قبل التنفيذ.
+- **3 لغات:** عربي وإنجليزي وفرنسي، و8 ثيمات منها الأبيض والأسود، وخط GE SS Two.
+
+**← [نزّل GraphicWO_Organizer.exe](https://github.com/GraphicWO-Studio/graphicwo-studio.github.io/releases/download/organizer-latest/GraphicWO_Organizer.exe)** (ما بيحتاج تثبيت)
+
+> أول مرة بتشغّله، إذا طلعتلك «Windows protected your PC»: اكبس **More info** وبعدين **Run anyway**.
 
 </div>
-
-## 🇬🇧 English
-
-**AI Image Studio**: free image generation in your browser or the Android app. Pollinations needs no account (about one image every 45 s). Puter is free with an account and gives you Nano Banana, GPT Image and Grok. It has 13 styles, 6 sizes, editing from a reference image, and a gallery that stays on your device.
-
-**File Organizer (Windows)**: sorts a folder into `Images/JPG`, `Videos/MP4` and so on, and never touches subfolders. It finds similar images and duplicate files, renames in batch by photo date, and can undo the last 30 actions.
-
-## 🇫🇷 Français
-
-**Studio d'images IA** : génération d'images gratuite, dans le navigateur ou dans l'application Android. Pollinations fonctionne sans compte (environ une image toutes les 45 s). Puter est gratuit avec un compte et donne accès à Nano Banana, GPT Image et Grok.
-
-**Organiseur de fichiers (Windows)** : range un dossier par type et extension sans toucher aux sous-dossiers. Il trouve aussi les images similaires et les doublons, renomme par lot et peut annuler les 30 dernières actions.
 
 ---
 
 <details>
-<summary>⚙️ للمطوّر / For developers</summary>
+<summary><b>For developers · للمطوّرين</b></summary>
 
-- `studio/`: the AI studio, a single HTML page with PWA support.
-- `organizer/`: the Windows app (Python + Tkinter). Every change to it is built into an EXE by GitHub Actions (`build-exe.yml`).
-- `mobile/`: the Android app (Capacitor). Every change to it is built into an APK by GitHub Actions (`build-apk.yml`).
-- Put GE SS Two font files in `organizer/fonts/` to embed them in the EXE.
+| Folder | What it is | Built by |
+|---|---|---|
+| `studio/` | The AI studio: one HTML page with PWA support | GitHub Pages |
+| `organizer/` | The Windows app (Python + Tkinter) | `build-exe.yml` → EXE release |
+| `mobile/` | The Android app (Capacitor) | `build-apk.yml` → APK release |
+
+Put GE SS Two font files (`.ttf`/`.otf`) in `organizer/fonts/` to embed them in the EXE.
 
 </details>
 
 <div align="center">
 
-صُنع بـ 💚 بواسطة <b>GraphicWO</b> • <a href="https://kick.com/graphicwo">kick.com/graphicwo</a>
+**Made with 💚 by GraphicWO** · [kick.com/graphicwo](https://kick.com/graphicwo)
+
+صُنع بـ 💚 بواسطة GraphicWO
 
 </div>

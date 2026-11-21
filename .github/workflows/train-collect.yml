@@ -1,0 +1,114 @@
+name: Train GraphicWO AI (collect result → Hugging Face)
+
+on:
+  schedule:
+    - cron: "41 */4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dataset
+  cancel-in-progress: false
+
+env:
+  KAGGLE_USERNAME: ${{ vars.KAGGLE_USERNAME }}
+  KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+  KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+  HF_REPO: ${{ vars.HF_REPO }}
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check setup
+        id: check
+        env:
+          DS: ${{ secrets.DATASET_TOKEN }}
+        run: if [ -n "$DS" ] && [ -n "$KAGGLE_USERNAME" ]; then echo "ready=true" >> "$GITHUB_OUTPUT"; else echo "ready=false" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Get dataset
+        if: steps.check.outputs.ready == 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: GraphicWO-Studio/graphicwo-dataset
+          token: ${{ secrets.DATASET_TOKEN }}
+          path: ds
+
+      - name: Is a training running?
+        if: steps.check.outputs.ready == 'true'
+        id: run
+        run: |
+          S=$(python3 -c "import json;print(json.load(open('ds/training/state.json')).get('status','idle'))" 2>/dev/null || echo idle)
+          echo "status=$S"; echo "running=$([ "$S" = running ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
+      - name: Kaggle status
+        if: steps.run.outputs.running == 'true'
+        id: k
+        run: |
+          pip install -q -U kaggle huggingface_hub
+          OUT=$(kaggle kernels status "$KAGGLE_USERNAME/graphicwo-lora-train" 2>&1 || true); echo "$OUT"
+          if echo "$OUT" | grep -qi 'complete'; then echo "state=complete" >> "$GITHUB_OUTPUT"
+          elif echo "$OUT" | grep -qiE 'error|cancel'; then echo "state=error" >> "$GITHUB_OUTPUT"
+          else echo "state=running" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Download LoRA
+        if: steps.k.outputs.state == 'complete' || steps.k.outputs.state == 'error'
+        run: |
+          mkdir -p kout
+          kaggle kernels output "$KAGGLE_USERNAME/graphicwo-lora-train" -p kout -o -q || true
+          find kout -maxdepth 3 -type f | head -20
+          tail -n 60 kout/*.log 2>/dev/null || true
+
+      - name: Publish to Hugging Face
+        if: steps.k.outputs.state == 'complete'
+        id: pub
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          W=$(find kout -name pytorch_lora_weights.safetensors | head -1)
+          if [ -z "$W" ]; then echo "::warning::No LoRA in output"; echo "ok=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          if [ -z "$HF_TOKEN" ] || [ -z "$HF_REPO" ]; then echo "::notice::Add HF_TOKEN secret and HF_REPO variable to publish."; echo "ok=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          python3 - "$W" <<'PY'
+          import json, os, sys, time, pathlib
+          from huggingface_hub import HfApi
+          w = pathlib.Path(sys.argv[1]); info = w.parent / "train_info.json"
+          meta = json.loads(info.read_text()) if info.exists() else {}
+          api = HfApi(token=os.environ["HF_TOKEN"]); repo = os.environ["HF_REPO"]
+          api.create_repo(repo, repo_type="model", exist_ok=True)
+          ver = time.strftime("v%Y.%m.%d")
+          card = f"""---
+          license: apache-2.0
+          base_model: black-forest-labs/FLUX.2-klein-base-4B
+          tags: [lora, flux2-klein, text-to-image, graphicwo]
+          ---
+          # GraphicWO AI
+          Community style LoRA for FLUX.2 [klein] 4B, retrained automatically every week from images liked in the free GraphicWO AI Image Studio (https://graphicwo-studio.github.io/studio/).
+          Latest: {ver} · {meta.get('images','?')} images · {meta.get('steps','?')} steps. Trigger: `graphicwo style`.
+          """
+          card = "\n".join(l[10:] if l.startswith(" " * 10) else l for l in card.splitlines())
+          api.upload_file(path_or_fileobj=str(w), path_in_repo="pytorch_lora_weights.safetensors", repo_id=repo, commit_message=f"GraphicWO AI {ver}")
+          api.upload_file(path_or_fileobj=card.encode(), path_in_repo="README.md", repo_id=repo, commit_message=f"Card {ver}")
+          try: api.create_tag(repo, tag=ver)
+          except Exception as e: print("tag:", e)
+          print("published", repo, ver)
+          PY
+          echo "ok=true" >> "$GITHUB_OUTPUT"
+
+      - name: Update state
+        if: steps.k.outputs.state == 'complete' || steps.k.outputs.state == 'error'
+        working-directory: ds
+        run: |
+          python3 - <<PY
+          import json, time, pathlib
+          p = pathlib.Path("training/state.json"); s = json.loads(p.read_text())
+          ok = "${{ steps.k.outputs.state }}" == "complete" and "${{ steps.pub.outputs.ok }}" == "true"
+          s["status"] = "idle"; s["finished"] = int(time.time()); s["last_result"] = "published" if ok else "${{ steps.k.outputs.state }}"
+          if ok: s["last_count"] = s.get("pending_count", s.get("last_count", 0)); s["versions"] = s.get("versions", 0) + 1
+          p.write_text(json.dumps(s, indent=1))
+          PY
+          git config user.name "GraphicWO Bot"; git config user.email "graphicwo@users.noreply.github.com"
+          git add -A; git diff --cached --quiet || { git commit -qm "Training finished"; git push -q; }

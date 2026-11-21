@@ -1,0 +1,106 @@
+name: Train GraphicWO AI (start on Kaggle)
+
+on:
+  schedule:
+    - cron: "23 2 * * 1"   # every Monday
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Train even if no new images"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dataset
+  cancel-in-progress: false
+
+env:
+  MIN_IMAGES: "20"
+  KAGGLE_USERNAME: ${{ vars.KAGGLE_USERNAME }}
+  KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+  KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+
+jobs:
+  start:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check setup
+        id: check
+        env:
+          DS: ${{ secrets.DATASET_TOKEN }}
+        run: |
+          if [ -z "$DS" ] || [ -z "$KAGGLE_USERNAME" ] || { [ -z "$KAGGLE_API_TOKEN" ] && [ -z "$KAGGLE_KEY" ]; }; then
+            echo "::notice::Training needs DATASET_TOKEN, KAGGLE_API_TOKEN (or KAGGLE_KEY) secrets and the KAGGLE_USERNAME variable."; echo "ready=false" >> "$GITHUB_OUTPUT"
+          else echo "ready=true" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Get dataset
+        if: steps.check.outputs.ready == 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: GraphicWO-Studio/graphicwo-dataset
+          token: ${{ secrets.DATASET_TOKEN }}
+          path: ds
+
+      - name: Enough new images?
+        if: steps.check.outputs.ready == 'true'
+        id: need
+        run: |
+          COUNT=$(ls ds/approved/*.jpg 2>/dev/null | wc -l)
+          LAST=$(python3 -c "import json;print(json.load(open('ds/training/state.json')).get('last_count',0))" 2>/dev/null || echo 0)
+          STATUS=$(python3 -c "import json;print(json.load(open('ds/training/state.json')).get('status','idle'))" 2>/dev/null || echo idle)
+          echo "approved=$COUNT last=$LAST status=$STATUS"
+          if [ "$STATUS" = "running" ]; then echo "Training already running."; echo "go=false" >> "$GITHUB_OUTPUT"
+          elif [ "$COUNT" -lt "$MIN_IMAGES" ]; then echo "::notice::Only $COUNT approved images (need $MIN_IMAGES)."; echo "go=false" >> "$GITHUB_OUTPUT"
+          elif [ "$COUNT" -le "$LAST" ] && [ "${{ inputs.force }}" != "true" ]; then echo "No new images since last training."; echo "go=false" >> "$GITHUB_OUTPUT"
+          else echo "go=true" >> "$GITHUB_OUTPUT"; echo "count=$COUNT" >> "$GITHUB_OUTPUT"; fi
+
+      - uses: actions/setup-python@v5
+        if: steps.need.outputs.go == 'true'
+        with:
+          python-version: "3.12"
+
+      - name: Upload data to Kaggle (private)
+        if: steps.need.outputs.go == 'true'
+        run: |
+          pip install -q -U kaggle
+          python tools/prepare_train.py ds kdata
+          cat > kdata/dataset-metadata.json <<JSON
+          {"title": "graphicwo-train-data", "id": "$KAGGLE_USERNAME/graphicwo-train-data", "licenses": [{"name": "other"}]}
+          JSON
+          if kaggle datasets status "$KAGGLE_USERNAME/graphicwo-train-data" >/dev/null 2>&1; then
+            kaggle datasets version -p kdata -m "auto ${{ steps.need.outputs.count }} images" --dir-mode zip -q
+          else
+            kaggle datasets create -p kdata --dir-mode zip -q
+          fi
+          sleep 60
+
+      - name: Start training notebook on Kaggle GPU
+        if: steps.need.outputs.go == 'true'
+        run: |
+          mkdir kk && cp training/kaggle_train.py kk/
+          cat > kk/kernel-metadata.json <<JSON
+          {"id": "$KAGGLE_USERNAME/graphicwo-lora-train", "title": "graphicwo-lora-train", "code_file": "kaggle_train.py",
+           "language": "python", "kernel_type": "script", "is_private": true, "enable_gpu": true, "enable_internet": true,
+           "dataset_sources": ["$KAGGLE_USERNAME/graphicwo-train-data"], "competition_sources": [], "kernel_sources": []}
+          JSON
+          kaggle kernels push -p kk
+
+      - name: Remember
+        if: steps.need.outputs.go == 'true'
+        working-directory: ds
+        run: |
+          mkdir -p training
+          python3 - <<PY
+          import json, time, pathlib
+          p = pathlib.Path("training/state.json")
+          s = json.loads(p.read_text()) if p.exists() else {}
+          s.update(status="running", started=int(time.time()), pending_count=${{ steps.need.outputs.count }})
+          p.write_text(json.dumps(s, indent=1))
+          PY
+          git config user.name "GraphicWO Bot"; git config user.email "graphicwo@users.noreply.github.com"
+          git add -A; git commit -qm "Training started"; git push -q

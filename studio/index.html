@@ -439,7 +439,7 @@ const S = {
   n: store.get("n", 1),
   style: store.get("style", "بدون"),
   quality: store.get("quality", {}),
-  theme: store.get("theme", "green"),
+  theme: ["green", "blue", "black", "white"].includes(store.get("theme")) ? store.get("theme") : "green",
   refs: [],
   busy: false,
   my: Object.assign({on: false, colors: [], notes: "", share: true}, store.get("my", {})),
@@ -518,7 +518,7 @@ function renderRefs() {
 }
 function applyTheme() {
   document.body.dataset.theme = S.theme;
-  const T = [["green", "#7ee81f"], ["black", "#000000"], ["white", "#ffffff"], ["blue", "#4f8cff"], ["purple", "#a855f7"], ["orange", "#ff8a3d"], ["light", "#e8ecf3"]];
+  const T = [["green", "#7ee81f"], ["blue", "#4f8cff"], ["black", "#000000"], ["white", "#ffffff"]];
   $("#themes").innerHTML = T.map(([k, c]) => `<div class="th ${k === S.theme ? "on" : ""}" data-t="${k}" style="background:${c}" title="${k}"></div>`).join("");
 }
 
@@ -900,7 +900,47 @@ $("#styles").onclick = e => { const el = e.target.closest(".chip"); if (!el) ret
 $("#count").onclick = e => { const b = e.target.closest("button"); if (!b) return; S.n = +b.dataset.n; renderCount(); save(); };
 $("#prompt").oninput = () => { updateCount(); store.set("draft", $("#prompt").value); };
 $("#prompt").onkeydown = e => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) generate(); };
-$("#btnRandom").onclick = () => { const L = IDEAS_I18N[LANG] || IDEAS; $("#prompt").value = L[Math.floor(Math.random() * L.length)]; updateCount(); };
+// ---- أفكار عشوائية: آلاف التركيبات + أفكار جديدة بالذكاء الاصطناعي (مجاني)
+const IDEA_PARTS = {
+  ar: {s: ["قطة لابسة نظارات شمسية", "تنين صغير لطيف", "رائد فضاء", "بنت بفستان أميرة", "روبوت قديم", "ذئب أبيض", "سيارة رياضية خضرا", "قلعة طايرة", "محارب ساموراي", "بومة حكيمة", "حصان من نار", "مدينة مستقبلية", "شجرة عملاقة مضوية", "غواصة صغيرة", "فارس بدرع ذهبي", "ساحرة لطيفة", "باندا عم يطبخ", "منارة على صخرة", "قطار بخاري", "أسد بتاج", "فتاة بشعر من نجوم", "بيت خشبي صغير", "حوت طاير", "لاعب كرة قدم", "ديناصور أطفال", "مركب شراعي", "فطر سحري ضخم", "ثعلب بوشاح", "مقاتل نينجا", "كوكب بحلقات ملونة"],
+       p: ["بغابة سحرية", "على سطح القمر", "بشوارع طوكيو بالليل", "تحت البحر", "بصحرا وقت الغروب", "فوق الغيوم", "بمكتبة قديمة", "بقرية ثلجية", "بمدينة نيون", "على جبل عالي", "بحديقة يابانية", "جوا قصر ذهبي", "بسوق شعبي قديم", "على شط استوائي", "بالفضاء بين المجرات", "بغرفة ألعاب ملونة", "تحت شجرة كرز مزهرة", "بمدينة مهجورة", "بمختبر علمي", "بمهرجان أضواء"],
+       l: ["إضاءة غروب ذهبية", "إضاءة نيون زرقا وخضرا", "ضباب ناعم", "ليل مع قمر كبير", "شمس الصبح", "برق وعاصفة", "إضاءة سينمائية دراماتيكية", "ألوان باستيل هادية", "شفق قطبي", "شموع دافية"],
+       x: ["تفاصيل عالية جداً", "واقعية فوتوغرافية", "ستايل أنمي", "رسم ثلاثي الأبعاد", "لوحة زيتية", "ستايل بيكسار", "ألوان مائية", "تصوير سينمائي 35mm", "فن رقمي ملحمي", "ستايل كرتوني لطيف"]},
+  en: {s: ["a cat wearing sunglasses", "a cute baby dragon", "an astronaut", "a girl in a princess dress", "an old rusty robot", "a white wolf", "a green sports car", "a floating castle", "a samurai warrior", "a wise owl", "a horse made of fire", "a futuristic city", "a giant glowing tree", "a tiny submarine", "a knight in golden armor", "a friendly witch", "a panda cooking", "a lighthouse on a rock", "a steam train", "a lion wearing a crown", "a girl with hair made of stars", "a small wooden cabin", "a flying whale", "a football player", "a baby dinosaur", "a sailing ship", "a giant magic mushroom", "a fox with a scarf", "a ninja fighter", "a planet with colorful rings"],
+       p: ["in a magical forest", "on the surface of the moon", "on Tokyo streets at night", "under the sea", "in a desert at sunset", "above the clouds", "in an ancient library", "in a snowy village", "in a neon city", "on a high mountain", "in a Japanese garden", "inside a golden palace", "in an old bazaar", "on a tropical beach", "in deep space between galaxies", "in a colorful toy room", "under a blooming cherry tree", "in an abandoned city", "in a science lab", "at a festival of lights"],
+       l: ["golden sunset lighting", "blue and green neon lighting", "soft fog", "night with a huge moon", "morning sunlight", "lightning storm", "dramatic cinematic lighting", "calm pastel colors", "northern lights", "warm candlelight"],
+       x: ["ultra detailed", "photorealistic", "anime style", "3D render", "oil painting", "Pixar style", "watercolor", "cinematic 35mm photo", "epic digital art", "cute cartoon style"]},
+  fr: {s: ["un chat avec des lunettes de soleil", "un adorable bébé dragon", "un astronaute", "une fille en robe de princesse", "un vieux robot rouillé", "un loup blanc", "une voiture de sport verte", "un château flottant", "un guerrier samouraï", "un hibou sage", "un cheval de feu", "une ville futuriste", "un arbre géant lumineux", "un petit sous-marin", "un chevalier en armure dorée", "une gentille sorcière", "un panda qui cuisine", "un phare sur un rocher", "un train à vapeur", "un lion couronné", "une fille aux cheveux d'étoiles", "une petite cabane en bois", "une baleine volante", "un footballeur", "un bébé dinosaure", "un voilier", "un champignon magique géant", "un renard avec une écharpe", "un ninja", "une planète aux anneaux colorés"],
+       p: ["dans une forêt magique", "sur la Lune", "dans les rues de Tokyo la nuit", "sous la mer", "dans un désert au coucher du soleil", "au-dessus des nuages", "dans une bibliothèque ancienne", "dans un village enneigé", "dans une ville néon", "sur une haute montagne", "dans un jardin japonais", "dans un palais doré", "dans un vieux souk", "sur une plage tropicale", "dans l'espace entre les galaxies", "dans une salle de jeux colorée", "sous un cerisier en fleurs", "dans une ville abandonnée", "dans un laboratoire", "à une fête des lumières"],
+       l: ["lumière dorée du couchant", "néons bleus et verts", "brume douce", "nuit avec une immense lune", "soleil du matin", "orage et éclairs", "éclairage cinématique dramatique", "couleurs pastel douces", "aurore boréale", "lumière chaude de bougies"],
+       x: ["ultra détaillé", "photoréaliste", "style anime", "rendu 3D", "peinture à l'huile", "style Pixar", "aquarelle", "photo cinéma 35mm", "art numérique épique", "style cartoon mignon"]}
+};
+const pick = a => a[Math.floor(Math.random() * a.length)];
+function comboIdea() {
+  const P = IDEA_PARTS[LANG] || IDEA_PARTS.ar;
+  return `${pick(P.s)} ${pick(P.p)}, ${pick(P.l)}, ${pick(P.x)}`;
+}
+async function aiIdea() {
+  const theme = pick(IDEA_PARTS.en.s) + " " + pick(IDEA_PARTS.en.p);
+  const lang = {ar: "Levantine Arabic", en: "English", fr: "French"}[LANG] || "Arabic";
+  const ask = `Write ONE original, vivid image-generation prompt inspired by: "${theme}". Add surprising creative details, lighting and art style. Max 35 words. Write it in ${lang}. Reply with the prompt only, no quotes.`;
+  const r = await fetch("https://text.pollinations.ai/" + encodeURIComponent(ask) + "?seed=" + Math.floor(Math.random() * 1e9), {signal: AbortSignal.timeout(9000)});
+  if (!r.ok) throw new Error(r.status);
+  const s = (await r.text()).trim().replace(/^["'«]+|["'»]+$/g, "");
+  if (s.length < 15 || s.length > 400 || /error|limit|<html/i.test(s)) throw new Error("bad");
+  return s;
+}
+let ideaN = 0;
+$("#btnRandom").onclick = async () => {
+  const btn = $("#btnRandom");
+  const L = IDEAS_I18N[LANG] || IDEAS;
+  ideaN++;
+  // نص سريع فوراً، وبنفس الوقت منطلب فكرة جديدة من الذكاء الاصطناعي
+  $("#prompt").value = ideaN % 3 === 0 ? pick(L) : comboIdea(); updateCount();
+  if (btn.disabled) return;
+  btn.disabled = true; const old = btn.textContent; btn.textContent = "✨ …";
+  try { $("#prompt").value = await aiIdea(); updateCount(); } catch {} finally { btn.disabled = false; btn.textContent = old; }
+};
 $("#btnClear").onclick = () => { $("#prompt").value = ""; updateCount(); $("#prompt").focus(); };
 $("#btnSeed").onclick = () => { $("#seed").value = Math.floor(Math.random() * 1e6); };
 $("#btnGo").onclick = generate;

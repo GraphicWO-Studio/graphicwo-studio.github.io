@@ -117,6 +117,23 @@ footer a{color:var(--g)}
   }
   const sel = document.getElementById("lang"); sel.value = L;
   sel.onchange = () => { try { localStorage.setItem("gwo_lang", JSON.stringify(sel.value)); } catch {} location.reload(); };
+  // 📢 رسالة من GraphicWO (نفس الرسالة بتوصل للموقع والتطبيق والـ EXE)
+  fetch("message.json?t=" + Date.now(), {cache: "no-store"}).then(r => r.json()).then(m => {
+    const text = m[L] || m.ar; let seen = null; try { seen = JSON.parse(localStorage.getItem("gwo_seenMsg")); } catch {}
+    if (!m.id || !text || seen === m.id) return;
+    const d = document.createElement("div");
+    d.style.cssText = "position:fixed;inset:0;background:#000a;z-index:99;display:flex;align-items:center;justify-content:center;padding:16px";
+    const c = document.createElement("div");
+    c.style.cssText = "background:#0f1712;color:#fff;border:1px solid #21382a;border-radius:16px;padding:20px;max-width:460px;width:100%;text-align:center;line-height:1.9";
+    const h = document.createElement("h3"); h.textContent = "📢 " + ({ar: "رسالة من GraphicWO", en: "Message from GraphicWO", fr: "Message de GraphicWO"}[L]);
+    const pp = document.createElement("p"); pp.style.whiteSpace = "pre-wrap"; pp.textContent = text;
+    c.append(h, pp);
+    if (m.link) { const a = document.createElement("a"); a.href = m.link; a.target = "_blank"; a.rel = "noopener"; a.textContent = "🔗 " + ({ar: "افتح الرابط", en: "Open link", fr: "Ouvrir le lien"}[L]); a.style.cssText = "display:block;margin:8px 0;color:#7ee81f;font-weight:700"; c.append(a); }
+    const ok = document.createElement("button"); ok.textContent = ({ar: "تمام 👍", en: "OK 👍", fr: "OK 👍"}[L]);
+    ok.style.cssText = "margin-top:8px;width:100%;padding:10px;border-radius:10px;border:0;background:#7ee81f;color:#06110a;font:inherit;font-weight:700;cursor:pointer";
+    ok.onclick = () => { try { localStorage.setItem("gwo_seenMsg", JSON.stringify(m.id)); } catch {} d.remove(); };
+    c.append(ok); d.append(c); document.body.append(d);
+  }).catch(() => {});
 })();
 </script>
 </body>

@@ -1,0 +1,54 @@
+name: 📢 Send message to all users
+
+# من GitHub (أو تطبيق GitHub عالموبايل): Actions → «📢 Send message to all users» → Run workflow
+# الرسالة بتطلع مرة وحدة لكل مستخدم: بالموقع، وتطبيق الموبايل، وبرنامج الـ EXE.
+on:
+  workflow_dispatch:
+    inputs:
+      message_ar:
+        description: "الرسالة بالعربي (اكتب clear لتمسح الرسالة)"
+        required: true
+      message_en:
+        description: "English (optional)"
+        required: false
+      message_fr:
+        description: "Français (optional)"
+        required: false
+      link:
+        description: "رابط (اختياري)"
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Write message.json
+        env:
+          AR: ${{ inputs.message_ar }}
+          EN: ${{ inputs.message_en }}
+          FR: ${{ inputs.message_fr }}
+          LINK: ${{ inputs.link }}
+        run: |
+          python3 - <<'PY'
+          import json, os, time
+          ar = os.environ.get("AR", "").strip()
+          if ar.lower() == "clear":
+              m = {"id": ""}
+          else:
+              link = os.environ.get("LINK", "").strip()
+              if link and not link.startswith("https://"):
+                  link = ""
+              m = {"id": time.strftime("%Y%m%d%H%M%S"), "ar": ar,
+                   "en": os.environ.get("EN", "").strip() or ar, "fr": os.environ.get("FR", "").strip() or os.environ.get("EN", "").strip() or ar,
+                   "link": link}
+          open("message.json", "w", encoding="utf-8").write(json.dumps(m, ensure_ascii=False, indent=1))
+          print(json.dumps(m, ensure_ascii=False))
+          PY
+      - name: Publish
+        run: |
+          git config user.name "GraphicWO"; git config user.email "graphicwo@users.noreply.github.com"
+          git add message.json; git diff --cached --quiet || { git commit -qm "📢 New message"; git push -q; }

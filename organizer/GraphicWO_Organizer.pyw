@@ -291,10 +291,14 @@ TR = {
 "أبيض": "White",
 "رح يعيد البرنامج التشغيل لتتغيّر اللغة.": "The app will restart to change the language.",
 "🎉 في تحديث جديد": "🎉 Update available",
+"📢 رسالة من GraphicWO": "📢 Message from GraphicWO",
+"\n\nبدك تفتح الرابط؟": "\n\nOpen the link?",
 "في نسخة جديدة من البرنامج ({0}).\nنسختك: {1}\n\n{2}\n\nبدك تنزّلها هلق؟": "A new version is available ({0}).\nYour version: {1}\n\n{2}\n\nDownload it now?"
 },
 "fr": {
 "🎉 في تحديث جديد": "🎉 Mise à jour disponible",
+"📢 رسالة من GraphicWO": "📢 Message de GraphicWO",
+"\n\nبدك تفتح الرابط؟": "\n\nOuvrir le lien ?",
 "في نسخة جديدة من البرنامج ({0}).\nنسختك: {1}\n\n{2}\n\nبدك تنزّلها هلق؟": "Une nouvelle version est disponible ({0}).\nVotre version : {1}\n\n{2}\n\nLa télécharger maintenant ?",
 "\n\nفشل نقل {0} ملف:\n": "\n\nÉchec du déplacement de {0} fichier(s) :\n",
 "\n\nما انحذفوا ({0}):\n": "\n\nNon supprimés ({0}) :\n",
@@ -547,8 +551,9 @@ def T(s):
 
 
 APP_NAME = T("منظّم الملفات")
-APP_VERSION = "1.1"
+APP_VERSION = "1.2"
 UPDATE_URL = "https://graphicwo-studio.github.io/version.json"
+MESSAGE_URL = "https://graphicwo-studio.github.io/message.json"
 DOWNLOAD_URL = "https://github.com/GraphicWO-Studio/graphicwo-studio.github.io/releases/download/organizer-latest/GraphicWO_Organizer.exe"
 DEV_NAME = "GraphicWO"
 DEV_LINK = "https://kick.com/graphicwo"
@@ -2571,7 +2576,33 @@ def _ver(v):
 
 def check_for_update(root):
     """يتأكد بالخلفية إذا في نسخة أحدث، وإذا في بيسأل المستخدم."""
+    def fetch(url):
+        import urllib.request
+        req = urllib.request.Request(url + "?t=" + str(int(datetime.now().timestamp())), headers={"Cache-Control": "no-cache", "User-Agent": "GraphicWO-Organizer"})
+        with urllib.request.urlopen(req, timeout=8) as r:
+            return json.loads(r.read().decode("utf-8"))
+
+    def message():
+        try:
+            m = fetch(MESSAGE_URL)
+            mid = str(m.get("id", ""))
+            text = m.get(LANG) or m.get("ar") or ""
+            if mid and text and S.data.get("seen_msg") != mid:
+                def show():
+                    link = m.get("link") or ""
+                    if link:
+                        if messagebox.askyesno(T("📢 رسالة من GraphicWO"), text + T("\n\nبدك تفتح الرابط؟"), parent=root):
+                            webbrowser.open(link)
+                    else:
+                        messagebox.showinfo(T("📢 رسالة من GraphicWO"), text, parent=root)
+                    S.data["seen_msg"] = mid
+                    S.save()
+                root.after(0, show)
+        except Exception:
+            pass
+
     def work():
+        message()
         try:
             import urllib.request
             req = urllib.request.Request(UPDATE_URL, headers={"Cache-Control": "no-cache", "User-Agent": "GraphicWO-Organizer"})

@@ -1549,7 +1549,7 @@ const APPS = [
   ]},
 ];
 const APP = {cur: null, file: null};
-const APP_THUMBS = new Set(["animals","clouds","space","truck","studio","fantasy","plush","anime","pixar","voxel","enhance","suit","relight","headshot","sticker","summary","poster","vintage"]);
+const APP_THUMBS = new Set(["animals","clouds","space","truck","studio","fantasy","plush","anime","pixar","voxel","enhance","suit","relight","headshot","sticker","summary","poster","vintage","mural","fine","hero"]);
 function renderApps() {
   $("#appsGrid").innerHTML = APPS.map(g => `<h3 class="apps-cat">${esc(t(g.cat))}</h3><div class="apps-row">${g.items.map(([id, ic, name, desc]) =>
     `<div class="app-card" data-app="${id}"><div class="app-ic${APP_THUMBS.has(id) ? " has-img" : ""}"${APP_THUMBS.has(id) ? ` style="background-image:url('../assets/apps/${id}.webp')"` : ""}>${APP_THUMBS.has(id) ? "" : ic}</div><b>${esc(t(name))}</b><span>${esc(t(desc))}</span><button class="pill">${t("جرّب")} ▶</button></div>`).join("")}</div>`).join("");
@@ -1619,7 +1619,7 @@ function featWire() {
 }
 
 // ================= تنبيه التحديثات
-const BUILD = "20261121231625";
+const BUILD = "20261121232028";
 async function checkMessage() {
   try {
     const m = await (await fetch("../message.json?t=" + Date.now(), {cache: "no-store"})).json();

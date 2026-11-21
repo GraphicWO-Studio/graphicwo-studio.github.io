@@ -19,7 +19,7 @@ export async function userFrom(req, env) {
   return h.startsWith("Bearer ") ? verify(env, h.slice(7)) : null;
 }
 
-export const LIMITS = {anon: 25, user: 100};   // صور GraphicWO ⚡ باليوم
+export const LIMITS = {anon: 30, user: 250};   // صور GraphicWO ⚡ باليوم
 
 // عدّاد يومي + معرض لكل مستخدم (Durable Object ببلاش)
 export class UserState {

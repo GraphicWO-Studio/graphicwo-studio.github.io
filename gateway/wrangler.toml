@@ -7,6 +7,8 @@ account_id = "ad2bc7da0efb5184da70e7d4a48e37a5"  # GraphicWO Cloudflare account 
 [vars]
 DATASET_REPO = "GraphicWO-Studio/graphicwo-dataset"
 ALLOWED_ORIGINS = "https://graphicwo-studio.github.io"
+STUDIO_URL = "https://graphicwo-studio.github.io/studio/"
+GH_CLIENT_ID = "Ov23liyzgaZjzjvW5vRS"  # GitHub OAuth App (عام، مش سر)
 
 # max 10 shared images per minute per visitor
 [[ratelimits]]
@@ -26,3 +28,11 @@ namespace_id = "1002"
   [ratelimits.simple]
   limit = 6
   period = 60
+
+[[durable_objects.bindings]]
+name = "USERS"
+class_name = "UserState"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["UserState"]

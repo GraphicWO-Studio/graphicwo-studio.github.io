@@ -32,8 +32,10 @@ jobs:
           workingDirectory: gateway
           secrets: |
             DATASET_TOKEN
+            GH_OAUTH_SECRET
         env:
           DATASET_TOKEN: ${{ secrets.DATASET_TOKEN }}
+          GH_OAUTH_SECRET: ${{ secrets.GH_OAUTH_SECRET }}
 
       - name: Gateway address
         if: steps.check.outputs.ready == 'true'

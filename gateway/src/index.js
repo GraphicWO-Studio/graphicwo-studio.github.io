@@ -1,3 +1,5 @@
+import {handleAccount, userFrom, useQuota, UserState} from "./account.js";
+export {UserState};
 // GraphicWO gateway: receives 👍 images from the studio and stores them in the
 // private dataset repo. The GitHub token lives only here (Worker secret), never in the website.
 // No IP addresses or personal data are stored.
@@ -141,13 +143,17 @@ export default {
     const origin = req.headers.get("Origin") || "";
     const cors = {
       "Access-Control-Allow-Origin": allowed.includes(origin) ? origin : allowed[0] || "*",
-      "Access-Control-Allow-Methods": "POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
+      "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
       "Vary": "Origin",
     };
     if (req.method === "OPTIONS") return new Response(null, {headers: cors});
     const url = new URL(req.url);
     if (req.method === "GET" && url.pathname === "/") return json({ok: true, service: "graphicwo-gateway"}, 200, cors);
+    if (url.pathname.startsWith("/auth/") || url.pathname.startsWith("/me") || url.pathname.startsWith("/gallery")) {
+      if (!url.pathname.startsWith("/auth/") && !allowed.includes(origin)) return json({error: "forbidden"}, 403, cors);
+      const r = await handleAccount(req, env, url, cors, json, toB64, sniff); if (r) return r;
+    }
     if (req.method === "POST" && url.pathname === "/chat") {
       if (!allowed.includes(origin)) return json({error: "forbidden"}, 403, cors);
       if (!env.AI) return json({error: "not_configured"}, 503, cors);
@@ -176,6 +182,9 @@ export default {
         const {success} = await env.IMG_LIMITER.limit({key: req.headers.get("CF-Connecting-IP") || "anon"});
         if (!success) return json({error: "rate_limited"}, 429, cors);
       }
+      const user = await userFrom(req, env);
+      const q = await useQuota(env, req, user);
+      if (!q.ok) return json({error: "daily_limit", used: q.used, max: q.max, login: !user}, 429, cors);
       let form;
       try { form = await req.formData(); } catch { return json({error: "bad_request"}, 400, cors); }
       try {
@@ -216,6 +225,7 @@ export default {
       style: clean(meta.style, 40),
       ratio: clean(meta.ratio, 10),
       lang: clean(meta.lang, 5),
+      source: clean(meta.source, 10) || "like",
       received: new Date().toISOString(),
     };
 

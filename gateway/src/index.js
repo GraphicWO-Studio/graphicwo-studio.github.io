@@ -76,6 +76,27 @@ async function runImage(env, form) {
   throw new Error("no_image");
 }
 
+// ---- فكرة إبداعية حسب الصورة المرفقة (موديلات صغيرة ومجانية)
+async function imageIdea(env, form) {
+  const img = form.get("image");
+  if (!img || typeof img === "string" || img.size > MAX_BYTES) throw Object.assign(new Error("no_image"), {status: 400});
+  const bytes = new Uint8Array(await img.arrayBuffer());
+  if (!sniff(bytes)) throw Object.assign(new Error("bad_type"), {status: 415});
+  const lang = {ar: "Levantine Arabic", fr: "French"}[String(form.get("lang"))] || "English";
+  const cap = await env.AI.run("@cf/unum/uform-gen2-qwen-500m", {image: [...bytes], prompt: "Describe this image in detail: subject, style, colors, background.", max_tokens: 160});
+  const desc = String(cap.description || cap.response || "").slice(0, 900);
+  const seedWords = ["cinematic", "fantasy", "cyberpunk", "anime", "vintage poster", "3D Pixar", "watercolor", "neon night", "luxury product ad", "epic battle", "cozy", "underwater", "space", "Minecraft style", "comic book"];
+  const vibe = seedWords[Math.floor(Math.random() * seedWords.length)];
+  const r = await env.AI.run("@cf/meta/llama-3.1-8b-instruct-fast", {
+    messages: [
+      {role: "system", content: "You write short, creative image-editing instructions for an AI image editor. Reply with ONE instruction only, max 30 words, no quotes, no preamble."},
+      {role: "user", content: `The user's reference image shows: ${desc}\nSuggest one surprising, fun way to transform or edit THIS image (keep the main subject), with a ${vibe} twist. Write it in ${lang}.`},
+    ],
+    max_tokens: 90, temperature: 1.0,
+  });
+  return String(r.response || "").trim().replace(/^["'«]+|["'»]+$/g, "");
+}
+
 export default {
   async fetch(req, env) {
     const allowed = String(env.ALLOWED_ORIGINS || "").split(",").map(s => s.trim()).filter(Boolean);
@@ -89,6 +110,16 @@ export default {
     if (req.method === "OPTIONS") return new Response(null, {headers: cors});
     const url = new URL(req.url);
     if (req.method === "GET" && url.pathname === "/") return json({ok: true, service: "graphicwo-gateway"}, 200, cors);
+    if (req.method === "POST" && url.pathname === "/idea") {
+      if (!allowed.includes(origin)) return json({error: "forbidden"}, 403, cors);
+      if (!env.AI) return json({error: "not_configured"}, 503, cors);
+      if (env.IMG_LIMITER) {
+        const {success} = await env.IMG_LIMITER.limit({key: "idea:" + (req.headers.get("CF-Connecting-IP") || "anon")});
+        if (!success) return json({error: "rate_limited"}, 429, cors);
+      }
+      try { const idea = await imageIdea(env, await req.formData()); if (!idea) throw new Error("empty"); return json({idea}, 200, cors); }
+      catch (e) { return json({error: "failed", detail: String(e && e.message || e).slice(0, 160)}, e.status || 502, cors); }
+    }
     if (req.method === "POST" && url.pathname === "/img") {
       if (!allowed.includes(origin)) return json({error: "forbidden"}, 403, cors);
       if (!env.AI) return json({error: "not_configured"}, 503, cors);

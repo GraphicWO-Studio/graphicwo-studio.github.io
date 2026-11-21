@@ -1231,7 +1231,7 @@ function save() { S.models[S.engine] = $("#model").value; if (ENGINES[S.engine].
 function updateCount() { $("#pcount").textContent = t("{n} حرف", {n: $("#prompt").value.length}); }
 
 // ================= تنبيه التحديثات
-const BUILD = "20261121203908";
+const BUILD = "20261121204234";
 async function checkMessage() {
   try {
     const m = await (await fetch("../message.json?t=" + Date.now(), {cache: "no-store"})).json();
@@ -1549,6 +1549,18 @@ function comboIdea() {
   const P = IDEA_PARTS[LANG] || IDEA_PARTS.ar;
   return `${pick(P.s)} ${pick(P.p)}, ${pick(P.l)}, ${pick(P.x)}`;
 }
+// فكرة حسب الصورة المرفقة
+const REF_IDEAS = {
+  ar: ["خلّي الخلفية مدينة نيون بالليل", "حوّلها لستايل أنمي ملوّن", "حوّلها لرسمة 3D متل أفلام بيكسار", "حطّها بغابة سحرية مع ضباب وأضواء", "خلّيها لوحة زيتية كلاسيكية", "حوّلها لبوستر فيلم سينمائي", "خلّي الجو شتوي مع تلج", "حطّها بالفضاء مع كواكب ونجوم", "حوّلها لستايل ماينكرافت", "خلّيها رسمة ألوان مائية ناعمة"],
+  en: ["make the background a neon city at night", "turn it into colorful anime style", "turn it into a Pixar-style 3D render", "place it in a magical misty forest", "make it a classic oil painting", "turn it into a cinematic movie poster", "make it a snowy winter scene", "place it in space with planets and stars", "turn it into Minecraft style", "make it a soft watercolor painting"],
+  fr: ["mets un arrière-plan de ville néon la nuit", "transforme-la en style anime coloré", "transforme-la en rendu 3D style Pixar", "place-la dans une forêt magique brumeuse", "fais-en une peinture à l'huile classique", "transforme-la en affiche de film", "fais-en une scène d'hiver enneigée", "place-la dans l'espace avec planètes et étoiles", "transforme-la en style Minecraft", "fais-en une aquarelle douce"]};
+async function refIdea() {
+  const small = await shrinkBlob(S.refs[0].file, 384);
+  const fd = new FormData(); fd.append("image", small, "ref.png"); fd.append("lang", LANG);
+  const r = await fetch(GATEWAY_URL + "/idea", {method: "POST", body: fd, signal: AbortSignal.timeout(20000)});
+  const j = await r.json(); if (!r.ok || !j.idea || j.idea.length < 5) throw new Error(j.error || r.status);
+  return j.idea;
+}
 async function aiIdea() {
   const theme = pick(IDEA_PARTS.en.s) + " " + pick(IDEA_PARTS.en.p);
   const lang = {ar: "Levantine Arabic", en: "English", fr: "French"}[LANG] || "Arabic";
@@ -1564,11 +1576,12 @@ $("#btnRandom").onclick = async () => {
   const btn = $("#btnRandom");
   const L = IDEAS_I18N[LANG] || IDEAS;
   ideaN++;
-  // نص سريع فوراً، وبنفس الوقت منطلب فكرة جديدة من الذكاء الاصطناعي
-  $("#prompt").value = ideaN % 3 === 0 ? pick(L) : comboIdea(); updateCount();
+  const hasRef = S.refs.length > 0;
+  // نص سريع فوراً، وبنفس الوقت منطلب فكرة جديدة من الذكاء الاصطناعي (حسب الصورة المرفقة إذا في)
+  $("#prompt").value = hasRef ? pick(REF_IDEAS[LANG] || REF_IDEAS.ar) : (ideaN % 3 === 0 ? pick(L) : comboIdea()); updateCount();
   if (btn.disabled) return;
-  btn.disabled = true; const old = btn.textContent; btn.textContent = "✨ …";
-  try { $("#prompt").value = await aiIdea(); updateCount(); } catch {} finally { btn.disabled = false; btn.textContent = old; }
+  btn.disabled = true; const old = btn.textContent; btn.textContent = hasRef ? "🖼 …" : "✨ …";
+  try { $("#prompt").value = hasRef ? await refIdea() : await aiIdea(); updateCount(); } catch {} finally { btn.disabled = false; btn.textContent = old; }
 };
 $("#btnClear").onclick = () => { $("#prompt").value = ""; updateCount(); $("#prompt").focus(); };
 $("#btnSeed").onclick = () => { $("#seed").value = Math.floor(Math.random() * 1e6); };

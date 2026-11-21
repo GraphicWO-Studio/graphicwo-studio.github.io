@@ -8,7 +8,7 @@ urls = {"organizer": "https://github.com/GraphicWO-Studio/graphicwo-studio.githu
 info = {"version": ver, "url": urls[kind], "published": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         **{f"notes_{k}": v for k, v in notes.items()}}
 open(f"{kind}.json", "w", encoding="utf-8").write(json.dumps(info, ensure_ascii=False, indent=1))
-print(json.dumps(info, ensure_ascii=False))
+print(json.dumps(info))
 if kind == "organizer":  # النسخ القديمة (1.1 و1.2) بتقرا version.json
     try:
         v = json.load(open("version.json", encoding="utf-8"))

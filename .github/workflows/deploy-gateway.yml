@@ -37,6 +37,15 @@ jobs:
           DATASET_TOKEN: ${{ secrets.DATASET_TOKEN }}
           GH_OAUTH_SECRET: ${{ secrets.GH_OAUTH_SECRET }}
 
+      - name: GPT Image 2.5 key (Pollo, optional)
+        if: steps.check.outputs.ready == 'true'
+        working-directory: gateway
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          VG: ${{ secrets.POLLO_KEY }}
+        run: |
+          if [ -n "$VG" ]; then printf '%s' "$VG" | npx -y wrangler@4 secret put POLLO_KEY >/dev/null && echo "Pollo key set"; else echo "::notice::No POLLO_KEY secret — PRO stays off."; fi
+
       - name: Gateway address
         if: steps.check.outputs.ready == 'true'
         run: echo "GATEWAY_URL=${{ steps.deploy.outputs.deployment-url }}"

@@ -21,6 +21,34 @@ export async function userFrom(req, env) {
 
 export const LIMITS = {anon: 30, user: 250};   // صور GraphicWO ⚡ باليوم
 
+// ---- توكن GitHub تبع المستخدم (مشفّر AES-GCM) — بس لنشغّل الشات من حسابه هو (GitHub Models)
+async function aesKey(env) {
+  const raw = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("gwo-ghtok:" + env.GH_OAUTH_SECRET));
+  return crypto.subtle.importKey("raw", raw, "AES-GCM", false, ["encrypt", "decrypt"]);
+}
+async function seal(env, s) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const c = new Uint8Array(await crypto.subtle.encrypt({name: "AES-GCM", iv}, await aesKey(env), new TextEncoder().encode(s)));
+  return b64u(String.fromCharCode(...iv) + String.fromCharCode(...c));
+}
+async function unseal(env, s) {
+  try { const b = Uint8Array.from(unb64u(s), ch => ch.charCodeAt(0));
+    return new TextDecoder().decode(await crypto.subtle.decrypt({name: "AES-GCM", iv: b.slice(0, 12)}, await aesKey(env), b.slice(12))); } catch { return null; }
+}
+export async function ghTokenOf(env, user) {
+  if (!user || !env.USERS) return null;
+  const j = await (await stub(env, "u:" + user.uid).fetch("https://do/kv/get?k=ght")).json();
+  return j.v ? unseal(env, j.v) : null;
+}
+
+// ---- ميزانية Cloudflare اليومية (10,000 neuron مجاناً لكل الناس) — منحسبها قبل ما تخلص
+export const NEURONS = {"flux-1-schnell": 60, "flux-2-klein-4b": 160};
+export const DAY_BUDGET = 9600;
+export async function useBudget(env, cost, peek = false) {
+  if (!env.USERS) return {ok: true};
+  return (await stub(env, "global:budget").fetch(`https://do/budget?cost=${cost}&max=${DAY_BUDGET}${peek ? "&peek=1" : ""}`)).json();
+}
+
 // عدّاد يومي + معرض لكل مستخدم (Durable Object ببلاش)
 export class UserState {
   constructor(ctx) { this.s = ctx.storage; }
@@ -35,6 +63,17 @@ export class UserState {
       q.n++; await this.s.put("q", q);
       return Response.json({ok: true, used: q.n, max});
     }
+    if (url.pathname === "/budget") {
+      const cost = +url.searchParams.get("cost") || 0, max = +url.searchParams.get("max"), peek = url.searchParams.get("peek") === "1";
+      let b = (await this.s.get("b")) || {day, n: 0};
+      if (b.day !== day) b = {day, n: 0};
+      if (peek) return Response.json({used: b.n, max});
+      if (cost >= 1e6) { b.n = max; await this.s.put("b", b); return Response.json({ok: false, used: b.n, max}); }  // Cloudflare قال خلص
+      if (b.n + cost > max) return Response.json({ok: false, used: b.n, max});
+      b.n += cost; await this.s.put("b", b); return Response.json({ok: true, used: b.n, max});
+    }
+    if (url.pathname === "/kv/get") return Response.json({v: (await this.s.get("kv:" + url.searchParams.get("k"))) || null});
+    if (url.pathname === "/kv/set") { const {k, v} = await req.json(); await this.s.put("kv:" + k, v); return Response.json({ok: true}); }
     if (url.pathname === "/gal/list") return Response.json((await this.s.get("gal")) || []);
     if (url.pathname === "/gal/add") {
       const it = await req.json(); const g = (await this.s.get("gal")) || [];
@@ -48,6 +87,10 @@ export class UserState {
   }
 }
 const stub = (env, key) => env.USERS.get(env.USERS.idFromName(key));
+export async function useCounter(env, key, max, peek = false) {
+  if (!env.USERS) return {ok: true, used: 0, max};
+  return (await stub(env, key).fetch(`https://do/use?max=${max}${peek ? "&peek=1" : ""}`)).json();
+}
 export async function useQuota(env, req, user, peek = false) {
   if (!env.USERS) return {ok: true};
   const key = user ? "u:" + user.uid : "ip:" + (req.headers.get("CF-Connecting-IP") || "anon");
@@ -76,14 +119,16 @@ export async function handleAccount(req, env, url, cors, json, toB64, sniff) {
     const tj = await tr.json();
     if (!tj.access_token) return Response.redirect(studio + "#gwo_login=failed", 302);
     const u = await (await fetch("https://api.github.com/user", {headers: {"Authorization": "Bearer " + tj.access_token, "User-Agent": "graphicwo-gateway"}})).json();
-    // ما منحتفظ بتوكن GitHub نهائياً
+    if (!u || !u.id) return Response.redirect(studio + "#gwo_login=failed", 302);
+    // توكن GitHub بيضل مشفّر بالسيرفر، ما بيوصل للمتصفح، وبينستعمل بس لشات المستخدم نفسه من حسابه
+    if (env.USERS) await stub(env, "u:" + u.id).fetch("https://do/kv/set", {method: "POST", body: JSON.stringify({k: "ght", v: await seal(env, tj.access_token)})});
     const tok = await sign(env, {uid: u.id, login: u.login, avatar: u.avatar_url, exp: Date.now() + 90 * 864e5});
     return Response.redirect(studio + "#gwo_token=" + tok, 302);
   }
   if (!p.startsWith("/me") && !p.startsWith("/gallery")) return null;
   const user = await userFrom(req, env);
   if (!user) return json({error: "login_required"}, 401, cors);
-  if (p === "/me") { const q = await useQuota(env, req, user, true); return json({login: user.login, avatar: user.avatar, used: q.used || 0, max: q.max || LIMITS.user, anonMax: LIMITS.anon}, 200, cors); }
+  if (p === "/me") { const q = await useQuota(env, req, user, true); return json({login: user.login, avatar: user.avatar, used: q.used || 0, max: q.max || LIMITS.user, anonMax: LIMITS.anon, ai: !!(await ghTokenOf(env, user))}, 200, cors); }
   const s = stub(env, "u:" + user.uid);
   if (p === "/gallery" && req.method === "GET") return json(await (await s.fetch("https://do/gal/list")).json(), 200, cors);
   if (p === "/gallery" && req.method === "POST") {

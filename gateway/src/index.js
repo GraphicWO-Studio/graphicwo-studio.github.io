@@ -1,4 +1,5 @@
-import {handleAccount, userFrom, useQuota, UserState} from "./account.js";
+import {handleAccount, userFrom, useQuota, UserState, ghTokenOf, useBudget, NEURONS, useCounter} from "./account.js";
+import {runPro, PRO_LIMITS} from "./pro.js";
 export {UserState};
 // GraphicWO gateway: receives 👍 images from the studio and stores them in the
 // private dataset repo. The GitHub token lives only here (Worker secret), never in the website.
@@ -44,17 +45,21 @@ async function putFile(env, path, b64, message) {
 const CF_MODELS = {
   "flux-1-schnell": "@cf/black-forest-labs/flux-1-schnell",
   "flux-2-klein-4b": "@cf/black-forest-labs/flux-2-klein-4b",
-  "lucid-origin": "@cf/leonardo/lucid-origin",
-  "phoenix": "@cf/leonardo/phoenix-1.0",
 };
+// lucid-origin وphoenix شلناهن: الصورة الوحدة منهن كانت تاكل ربع رصيد اليوم كلّه
 const b64ToBytes = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
 const clamp16 = (v, lo, hi) => Math.max(lo, Math.min(hi, Math.round((+v || 1024) / 16) * 16));
 
+// klein (أغلى) بس للتعديل عالصور أو إذا انطلب بالاسم؛ غير هيك schnell (الأرخص)
+function pickModel(form) {
+  const refs = form.getAll("image").filter(f => f && typeof f !== "string");
+  if (refs.length) return "flux-2-klein-4b";
+  return String(form.get("model")) === "flux-2-klein-4b" ? "flux-2-klein-4b" : "flux-1-schnell";
+}
 async function runImage(env, form) {
   const prompt = clean(form.get("prompt"), 2000).trim();
   if (prompt.length < 2) throw Object.assign(new Error("no_prompt"), {status: 400});
-  const key = String(form.get("model") || "flux-2-klein-4b");
-  const model = CF_MODELS[key] || CF_MODELS["flux-2-klein-4b"];
+  const model = CF_MODELS[pickModel(form)];
   const width = clamp16(form.get("width"), 256, 1280), height = clamp16(form.get("height"), 256, 1280);
   const seed = Math.floor(Math.random() * 2 ** 31);
   const refs = form.getAll("image").filter(f => f && typeof f !== "string").slice(0, 4);
@@ -78,8 +83,38 @@ async function runImage(env, form) {
   throw new Error("no_image");
 }
 
+// ---- 🧠 الذكاء النصّي: من حساب المستخدم نفسه على GitHub Models (GPT ببلاش).
+// الشات والأفكار ما بيصرفوا شي من رصيدنا. بدون حساب: بس ترجمة البرومبت على موديل صغير.
+const GH_MODELS = ["openai/gpt-4.1-mini", "openai/gpt-4o-mini", "openai/gpt-4.1-nano"];
+async function llm(env, user, messages, {max_tokens = 900, temperature = 0.7, vision = false, tiny = false} = {}) {
+  const gh = await ghTokenOf(env, user).catch(() => null);
+  if (gh) {
+    for (const model of vision ? ["openai/gpt-4o-mini", "openai/gpt-4.1-mini"] : GH_MODELS) {
+      try {
+        const r = await fetch("https://models.github.ai/inference/chat/completions", {method: "POST",
+          headers: {"Authorization": "Bearer " + gh, "Content-Type": "application/json", "Accept": "application/json", "X-GitHub-Api-Version": "2022-11-28", "User-Agent": "graphicwo-gateway"},
+          body: JSON.stringify({model, messages, max_tokens, temperature})});
+        if (r.status === 401 || r.status === 403) break;          // التوكن انتهى أو ما إله صلاحية
+        if (!r.ok) continue;                                       // حد الموديل خلص، جرّب اللي بعده
+        const t = (await r.json())?.choices?.[0]?.message?.content;
+        if (t) return {text: String(t).trim(), via: "github:" + model.split("/")[1]};
+      } catch {}
+    }
+  }
+  // بدون حساب: بس المهام الصغيرة (ترجمة البرومبت) على موديل صغير كتير رخيص (تقريباً 5 neuron)
+  if (tiny && env.AI) {
+    const b = await useBudget(env, 6);
+    if (b.ok) {
+      const r = await env.AI.run("@cf/meta/llama-3.1-8b-instruct-fast", {messages, max_tokens: Math.min(max_tokens, 300), temperature: 0.2});
+      const t = r?.response ?? r?.choices?.[0]?.message?.content;
+      if (t) return {text: String(t).trim(), via: "cf-tiny"};
+    }
+  }
+  throw Object.assign(new Error(gh ? "gh_limit" : "login_required"), {status: gh ? 429 : 401});
+}
+
 // ---- فكرة إبداعية حسب الصورة المرفقة (موديلات صغيرة ومجانية)
-async function imageIdea(env, form) {
+async function imageIdea(env, form, user) {
   const img = form.get("image");
   if (!img || typeof img === "string" || img.size > MAX_BYTES) throw Object.assign(new Error("no_image"), {status: 400});
   const bytes = new Uint8Array(await img.arrayBuffer());
@@ -95,13 +130,8 @@ async function imageIdea(env, form) {
       {type: "image_url", image_url: {url: `data:${mime};base64,${toB64(bytes)}`}},
     ]},
   ];
-  let r, lastErr;
-  for (const m of ["@cf/meta/llama-4-scout-17b-16e-instruct", "@cf/google/gemma-3-12b-it", "@cf/mistralai/mistral-small-3.1-24b-instruct"]) {
-    try { r = await env.AI.run(m, {messages, max_tokens: 100, temperature: 1.0}); if (r && (r.response || r.choices)) break; } catch (e) { lastErr = e; r = null; }
-  }
-  if (!r) throw lastErr || new Error("no_model");
-  if (!r.response && r.choices) r.response = r.choices[0]?.message?.content;
-  return String(r.response || "").trim().replace(/^["'«]+|["'»]+$/g, "");
+  const r = await llm(env, user, messages, {max_tokens: 100, temperature: 1.0, vision: true});
+  return r.text.replace(/^["'«]+|["'»]+$/g, "");
 }
 
 // ---- 💬 شات مجاني (Cloudflare Workers AI)
@@ -118,7 +148,7 @@ const CHAT_SYSTEM = `You are "GraphicWO AI", a friendly, smart and helpful assis
   Each item is "<letter or number>:<short example word>:<one emoji>", in order. Be creative with the background and layout so every request looks different. For the Arabic alphabet give all 28 letters أ ب ت ث ج ح خ د ذ ر ز س ش ص ض ط ظ ع غ ف ق ك ل م ن ه و ي.
 - Never produce sexual content, content about minors, hateful content, or real-person deepfakes.`;
 
-async function chat(env, body) {
+async function chat(env, body, user) {
   const msgs = Array.isArray(body.messages) ? body.messages.slice(-16) : [];
   const messages = [{role: "system", content: CHAT_SYSTEM}];
   for (const m of msgs) {
@@ -126,19 +156,13 @@ async function chat(env, body) {
     messages.push({role: m.role, content: clean(m.content, 4000)});
   }
   if (messages.length < 2) throw Object.assign(new Error("no_message"), {status: 400});
-  let lastErr;
-  const CHAT_MODELS = ["@cf/mistralai/mistral-small-3.1-24b-instruct", "@cf/meta/llama-3.3-70b-instruct-fp8-fast", "@cf/meta/llama-3.1-8b-instruct-fast"];
-  const order = CHAT_MODELS.includes(body.model) ? [body.model, ...CHAT_MODELS.filter(m => m !== body.model)] : CHAT_MODELS;
-  for (const model of order) {
-    try {
-      const r = await env.AI.run(model, {messages, max_tokens: 900, temperature: 0.7});
-      let text = r?.response ?? r?.choices?.[0]?.message?.content ?? (typeof r === "string" ? r : "");
-      text = String(text || "").replace(/<think>[\s\S]*?<\/think>/g, "").trim();
-      if (text) return body.debug ? model + " :: " + text : text;
-    } catch (e) { lastErr = e; }
-  }
-  throw lastErr || new Error("no_reply");
+  const r = await llm(env, user, messages);
+  return {reply: r.text.replace(/<think>[\s\S]*?<\/think>/g, "").trim(), via: r.via};
 }
+
+const nextReset = () => { const d = new Date(); d.setUTCHours(24, 0, 0, 0); return d.getTime(); };
+// حالة رصيد السيرفر لليوم (للواجهة)
+async function serverStatus(env) { const b = await useBudget(env, 0, true); return {used: b.used || 0, max: b.max || 0, reset: nextReset()}; }
 
 export default {
   async fetch(req, env) {
@@ -159,25 +183,60 @@ export default {
     }
     if (req.method === "POST" && url.pathname === "/chat") {
       if (!allowed.includes(origin)) return json({error: "forbidden"}, 403, cors);
-      if (!env.AI) return json({error: "not_configured"}, 503, cors);
       if (env.LIMITER) {
         const {success} = await env.LIMITER.limit({key: "chat:" + (req.headers.get("CF-Connecting-IP") || "anon")});
         if (!success) return json({error: "rate_limited"}, 429, cors);
       }
       let body; try { body = await req.json(); } catch { return json({error: "bad_request"}, 400, cors); }
-      try { return json({reply: await chat(env, body)}, 200, cors); }
-      catch (e) { const m = String(e && e.message || e); return json({error: /neuron|quota|limit|4006|daily/i.test(m) ? "daily_limit" : "failed", detail: m.slice(0, 160)}, e.status || 502, cors); }
+      try { return json(await chat(env, body, await userFrom(req, env)), 200, cors); }
+      catch (e) { const m = String(e && e.message || e); return json({error: /login_required|gh_limit/.test(m) ? m : "failed", detail: m.slice(0, 160)}, e.status || 502, cors); }
+    }
+    // ترجمة البرومبت للإنجليزي / فكرة عشوائية
+    if (req.method === "POST" && url.pathname === "/text") {
+      if (!allowed.includes(origin)) return json({error: "forbidden"}, 403, cors);
+      if (env.LIMITER) { const {success} = await env.LIMITER.limit({key: "text:" + (req.headers.get("CF-Connecting-IP") || "anon")}); if (!success) return json({error: "rate_limited"}, 429, cors); }
+      let body; try { body = await req.json(); } catch { return json({error: "bad_request"}, 400, cors); }
+      const user = await userFrom(req, env), task = body.task === "idea" ? "idea" : "translate";
+      const text = clean(body.text, 2000);
+      const sys = task === "translate"
+        ? "Translate the user's image-generation prompt (Arabic, possibly Levantine dialect) into a clear, detailed English prompt. Keep every detail and do not add things that were not mentioned. Any text the user wants written in the image (in quotes or after words like اكتب/مكتوب/كتابة) must stay EXACTLY as written inside double quotes, untranslated. Output ONLY the English prompt."
+        : "You write ONE original, vivid image-generation prompt (max 35 words) with surprising creative details, lighting and art style. Reply with the prompt only, no quotes.";
+      try { const r = await llm(env, user, [{role: "system", content: sys}, {role: "user", content: text}], {max_tokens: 300, temperature: task === "idea" ? 1.0 : 0.2, tiny: task === "translate"});
+        return json({text: r.text.replace(/^["'«]+|["'»]+$/g, ""), via: r.via}, 200, cors); }
+      catch (e) { return json({error: String(e.message || e)}, e.status || 502, cors); }
     }
     if (req.method === "POST" && url.pathname === "/idea") {
       if (!allowed.includes(origin)) return json({error: "forbidden"}, 403, cors);
-      if (!env.AI) return json({error: "not_configured"}, 503, cors);
       if (env.IMG_LIMITER) {
         const {success} = await env.IMG_LIMITER.limit({key: "idea:" + (req.headers.get("CF-Connecting-IP") || "anon")});
         if (!success) return json({error: "rate_limited"}, 429, cors);
       }
-      try { const idea = await imageIdea(env, await req.formData()); if (!idea) throw new Error("empty"); return json({idea}, 200, cors); }
+      try { const idea = await imageIdea(env, await req.formData(), await userFrom(req, env)); if (!idea) throw new Error("empty"); return json({idea}, 200, cors); }
       catch (e) { return json({error: "failed", detail: String(e && e.message || e).slice(0, 160)}, e.status || 502, cors); }
     }
+    // 🔥 GPT Image 2.5 عبر Pollo (مدفوع) — بس للمسجّلين، وبسقف يومي لكل مستخدم وللكل
+    if (url.pathname === "/pro" && (req.method === "POST" || req.method === "GET")) {
+      if (!allowed.includes(origin)) return json({error: "forbidden"}, 403, cors);
+      const user = await userFrom(req, env);
+      if (req.method === "GET") {
+        const u = user ? await useCounter(env, "pro:u:" + user.uid, PRO_LIMITS.perUser, true) : {used: 0};
+        const g = await useCounter(env, "global:pro", PRO_LIMITS.perDay, true);
+        return json({enabled: !!env.POLLO_KEY, login: !!user, used: u.used || 0, max: PRO_LIMITS.perUser, left: Math.max(0, PRO_LIMITS.perDay - (g.used || 0)), reset: nextReset()}, 200, cors);
+      }
+      if (!env.POLLO_KEY) return json({error: "not_configured"}, 503, cors);
+      if (!user) return json({error: "login_required"}, 401, cors);
+      let form; try { form = await req.formData(); } catch { return json({error: "bad_request"}, 400, cors); }
+      const u = await useCounter(env, "pro:u:" + user.uid, PRO_LIMITS.perUser, true);
+      if ((u.used || 0) >= PRO_LIMITS.perUser) return json({error: "pro_user_limit", used: u.used, max: PRO_LIMITS.perUser, reset: nextReset()}, 429, cors);
+      const g = await useCounter(env, "global:pro", PRO_LIMITS.perDay);
+      if (!g.ok) return json({error: "pro_day_limit", reset: nextReset()}, 429, cors);
+      try {
+        const out = await runPro(env, form);
+        await useCounter(env, "pro:u:" + user.uid, PRO_LIMITS.perUser);
+        return new Response(out.bytes, {headers: {"Content-Type": out.type, "Cache-Control": "no-store", ...cors}});
+      } catch (e) { return json({error: String(e.message || e).slice(0, 80)}, e.status || 502, cors); }
+    }
+    if (req.method === "GET" && url.pathname === "/status") return json(await serverStatus(env), 200, cors);
     if (req.method === "POST" && url.pathname === "/img") {
       if (!allowed.includes(origin)) return json({error: "forbidden"}, 403, cors);
       if (!env.AI) return json({error: "not_configured"}, 503, cors);
@@ -185,19 +244,23 @@ export default {
         const {success} = await env.IMG_LIMITER.limit({key: req.headers.get("CF-Connecting-IP") || "anon"});
         if (!success) return json({error: "rate_limited"}, 429, cors);
       }
-      const user = await userFrom(req, env);
-      const q = await useQuota(env, req, user);
-      if (!q.ok) return json({error: "daily_limit", used: q.used, max: q.max, login: !user}, 429, cors);
       let form;
       try { form = await req.formData(); } catch { return json({error: "bad_request"}, 400, cors); }
+      const user = await userFrom(req, env);
+      const q = await useQuota(env, req, user, true);
+      if (q.used >= (q.max || 1e9)) return json({error: "daily_limit", used: q.used, max: q.max, login: !user}, 429, cors);
+      const b = await useBudget(env, NEURONS[pickModel(form)] || 160);
+      if (!b.ok) return json({error: "server_daily", reset: nextReset()}, 429, cors);
+      await useQuota(env, req, user);
       try {
         const bytes = await runImage(env, form);
         const type = sniff(bytes) === "png" ? "image/png" : sniff(bytes) === "webp" ? "image/webp" : "image/jpeg";
         return new Response(bytes, {headers: {"Content-Type": type, "Cache-Control": "no-store", ...cors}});
       } catch (e) {
         const m = String(e && e.message || e);
-        const quota = /neuron|quota|limit|capacity|4006|daily/i.test(m);
-        return json({error: quota ? "daily_limit" : "failed", detail: m.slice(0, 160)}, e.status || (quota ? 429 : 502), cors);
+        const quota = /neuron|quota|4006|daily/i.test(m);
+        if (quota) { await useBudget(env, 1e6).catch(() => {}); }
+        return json({error: quota ? "server_daily" : "failed", reset: nextReset(), detail: m.slice(0, 160)}, e.status || (quota ? 429 : 502), cors);
       }
     }
     if (req.method !== "POST" || url.pathname !== "/like") return json({error: "not_found"}, 404, cors);
